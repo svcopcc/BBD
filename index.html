@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>連結指引 - 文件導航系統</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', 'Microsoft JhengHei', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .guide-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            animation: fadeInUp 0.8s ease-out;
+            transition: transform 0.3s ease;
+        }
+
+        .guide-section:hover {
+            transform: translateY(-5px);
+        }
+
+        .section-title {
+            color: #4a5568;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .site-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 5px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .site-card:hover {
+            background: #e3f2fd;
+            transform: translateX(5px);
+        }
+
+        .site-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+
+        .site-description {
+            color: #4a5568;
+            margin-bottom: 15px;
+        }
+
+        .flow-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .step {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+
+        .step_big {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            position: relative;
+            transition: transform 0.3s ease;
+            text-align: left;
+        }
+
+        .step:hover {
+            transform: scale(1.05);
+        }
+
+        .step_big:hover {
+            transform: scale(1.05);
+        }
+
+        .step-number {
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            font-weight: bold;
+        }
+
+        .demo-image {
+            width: 100%;
+            max-width: 300px;
+            height: 200px;
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 15px auto;
+            color: #666;
+            font-style: italic;
+            transition: all 0.3s ease;
+        }
+
+        .demo-image:hover {
+            background: linear-gradient(45deg, #e8f5e8, #d4edda);
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .link-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .link-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+            background: linear-gradient(135deg, #218838, #1e7e34);
+        }
+
+        .link-button_fast {
+            display: inline-block;
+            background: linear-gradient(138deg, #cddfff, #0040ff);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 10px 5px;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        .link-button_fast:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.4);
+            background: linear-gradient(138deg, #4c7fdae3, #3348f5);
+        }
+
+        .warning-box {
+            background: linear-gradient(135deg, #ff6b6b, #ffa500);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .tips-box {
+            background: linear-gradient(135deg, #17a2b8, #007bff);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .flow-steps {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 連J指引系統</h1>
+            <p>ℹ️快速找到您需要的文件和資源</p>
+            <p>ℹ️本站提供之所有資訊僅供參考，無法保證其完整性、正確性與即時性。<br>
+            ⚠️使用者應自行查證相關內容，並依實際情況判斷與採用；<br>
+            ⚠️若因依據本站資訊而造成任何損失或風險，本站概不負責。連結若過期請自行到網站下載 </p>
+            <p style="text-align: right;">張源庭  v. 2025.08.22</p>
+        </div>
+
+        <div class="guide-section">
+            <h2 class="section-title">
+                <span class="icon">🔗🔗</span>
+                快速連結
+            </h2>
+            <div class="site-card">
+                <div class="site-name">行南營運處</div>
+                <div class="site-description"></div>
+                <a href="https://msbranch.cht.com.tw/Talent" target="_blank" class="link-button_fast">行南人發駐點</a>
+                <a href="https://msbranch.cht.com.tw/Adminsection/index.htm" target="_blank" class="link-button_fast">行政管理科</a>
+                <a href="https://msbranch.cht.com.tw/Design/%E4%B8%80%E8%82%A1/index.htm" target="_blank" class="link-button_fast">設計科</a>
+                <a href="https://msbranch.cht.com.tw/Engineering/default.htm" target="_blank" class="link-button_fast">工程科</a>
+                <a href="https://msbranch.cht.com.tw/OSH/default.htm" target="_blank" class="link-button_fast">職業安全衛生科</a>
+                <a href="https://svcnet.cht.com.tw/" target="_blank" class="link-button_fast">服務網路科</a>
+                <a href="https://msbranch.cht.com.tw/Network" target="_blank" class="link-button_fast">網路維運科</a>
+            </div>
+
+            <div class="site-card">
+                <div class="site-name">其他網站</div>
+                <p>▲</p><div class="site-description">常用網站</div>
+                <a href="https://eip.cht.com.tw/index.jsp" target="_blank" class="link-button_fast">EIP</a>
+                <a href="https://vms.cht.com.tw/Main.aspx" target="_blank" class="link-button_fast">VEMIS車輛管理系統</a>
+                <a href="https://webntg.cht.com.tw/" target="_blank" class="link-button_fast">網路技術分公司</a>
+                <a href="https://esafe.cht.com.tw/oshAdmin/login.do" target="_blank" class="link-button_fast">安全E.0</a>
+                <a href="https://eip.cht.com.tw/new_web/chthq/hr/" target="_blank" class="link-button_fast">組織暨人發處</a>
+                <a href="https://eip.cht.com.tw/new_web/chthq/sp/index.htm" target="_blank" class="link-button_fast">總公司供應處</a>
+                <a href="http://ssodspro.cht.com.tw/" target="_blank" class="link-button_fast">通訊錄</a>
+
+                <p>▲</p><div class="site-description">常用網站</div>
+                <a href="https://eip.cht.com.tw/cht-eip-dw/chthq/40588/" target="_blank" class="link-button_fast">總公司職安處</a>
+                <a href="https://www.cshm.org.tw/Home/LawInfo" target="_blank" class="link-button_fast">職安相關法規</a>
+                <a href="https://eip.cht.com.tw/cht-eip-dw/chthq/40588/law/index_lawcht.htm" target="_blank" class="link-button_fast">本公司職安相關法規</a>
+
+
+
+                <p>▲</p><div class="site-description">福利相關</div>
+                <a href="https://room.cht.com.tw/Default.aspx" target="_blank" class="link-button_fast">文康室預約系統</a>
+                <a href="https://www.ctewc.cht.com.tw/" target="_blank" class="link-button_fast">福委會</a>
+                <a href="http://resort.cht.com.tw/ldap_login.php" target="_blank" class="link-button_fast">中華電信會館</a>
+
+                <p>▲</p><div class="site-description">學院/直播/線上課程</div>
+                <a href="https://vroom.elearning.cht.com.tw/livec2/home.cht" target="_blank" class="link-button_fast">直播課程</a>
+                <a href="https://elearning.cht.com.tw/chtilearn/rwd/home.jsp" target="_blank" class="link-button_fast">elearning</a>
+                <a href="https://web.chtti.com.tw/" target="_blank" class="link-button_fast">中華電信學院</a>
+                <a href="https://tisflow.cht.com.tw/weboa/servlet/FuncIndex?serv=TCLASS" target="_blank" class="link-button_fast">學院參訊報名表</a>
+                
+                <p>▲</p><div class="site-description">健檢/健走/健康</div>
+                <a href="https://health.cht.com.tw/CHTV2/Normal" target="_blank" class="link-button_fast">健康管理系統</a>
+                
+                <p>▲</p><div class="site-description">資安</div>
+                <a href="https://irmas.cht.com.tw/0_index.php" target="_blank" class="link-button_fast">IRMAS</a>
+                <a href="https://istms.cht.com.tw/TmsWeb/index_frame.jsp" target="_blank" class="link-button_fast">CHT SOC</a>
+                <a href="https://cht365.sharepoint.com/sites/CyberSecurity" target="_blank" class="link-button_fast">資通安全</a>
+                <a href="https://pims.cht.com.tw/chtn/news/news_display.php?id=dVdBZDNGR2ovQk96WEJOaW5nazBiQT09" target="_blank" class="link-button_fast">各區處授權軟體</a>
+                <a href="https://repo-jfrog.cht.com.tw/ui/login/" target="_blank" class="link-button_fast">JFrog_CHT開源軟體庫</a>
+
+
+                <p>▲</p><div class="site-description">施工股</div>
+                <a href="https://svcopcc.github.io/cht/" target="_blank" class="link-button_fast" style="background:linear-gradient(138deg, #ea1d18, #ff8002ba);">施工股巡檢表</a>
+
+
+
+            </div>
+
+
+
+        </div>
+
+
+        <div class="guide-section">
+            <h2 class="section-title">
+                <span class="icon">🏢</span>
+                電腦設定
+            </h2>
+
+            <div class="site-card">
+                <div class="site-name">禁用之P2P或風險軟體單</div>
+                <div class="site-description">#網路鐘訊源 #風險軟體清單 #禁用軟體 #資訊安全 #CHTNet連網 #Windows修補 #特定類型終端設備
+管控措施 #IRMAS_WSUS檢查文件 #加密信件設定流程 #網分OA電腦 #安全調教 #資安檢表</div>
+                <div class="flow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        進入「網分」官網首頁
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        找到網頁中間「資訊特區」
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        點選「資訊安全」
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        填寫申請表單
+                    </div>
+                    
+                </div>
+                <div class="demo-image">
+                    📄 圖片還沒生出來
+                </div>
+                <a href="https://webntg.cht.com.tw/" target="_blank" class="link-button">前往網分官網</a>
+                <a href="https://pims.cht.com.tw/chtn/news/news_display.php?id=ejB1VDRBSDhxV09BL29FVVlZRGg0QT09" target="_blank" target="_blank" class="link-button">前往網分-資訊安全</a>
+            </div>
+
+        </div>
+
+        <div class="guide-section">
+            <h2 class="section-title">
+                <span class="icon">🏦</span>
+                相關規定
+            </h2>  
+            <div class="site-card">
+                <div class="site-name">性騷擾防治</div>
+                <div class="site-description">性騷擾防治文件下載/申訴管道</div>
+                <div class="flow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        進入"網分人發駐點"網站
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        選擇左側「性騷擾防治」
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        1. 中華電信股份有限公司禁止性騷擾書面聲明<BR>
+                        2. 中華電信股份有限公司性騷擾防治措施申訴及懲戒要點<BR>
+                    </div>
+                </div>
+                <div class="step_big">
+                    <div class="step-number">#</div>
+                      網路技術分公司行南營運處性騷擾案件申訴：<br>
+                      電話：(07)3446204<br>
+                      傳真：(07)3446297<br>
+                      電子信箱：iqeq66@cht.com.tw (謝文亮.高級管理師.組織暨人才發展處)<br>
+                </div>
+                <div class="demo-image">
+                    💰 圖片
+                </div>
+                
+                <a href="https://pims.cht.com.tw/chtn/index.php?web=NTGWeb9HR" target="_blank" class="link-button">前往網分人發駐點</a>
+                <a href="https://pims.cht.com.tw/chtn/singleFileLinks/20250121172733/20250121172733.pdf" target="_blank" class="link-button">PDF-禁止性騷擾書面聲明</a>
+                <a href="https://pims.cht.com.tw/chtn/singleFileLinks/20250121173209/20250121173209.pdf" target="_blank" class="link-button">PDF-性騷擾防治措施申訴及懲戒要點</a>
+            </div>
+
+            <div class="site-card">
+                <div class="site-name">個資規範</div>
+                <div class="site-description">#個資規範 #作業要點 #程序 #全區共用表單 #資安事件 #資安事件通報 #資安規範</div>
+                <div class="flow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        進入"資通安全"網站
+                    </div>
+                </div>
+                <div class="step_big">
+                    <div class="step-number">#</div>
+                      二、資安規範、作業要點、程序、全區共用表單等文件<br>
+                      →  資通安全管理規範與實施細則<br>
+                      →  資安事件通報<br><br>
+                      三、個資規範、作業要點、程序、全區共用表單等<br>
+                      → 個人資料保護管理規範<br>
+                      → 個資事件通報<br><br>
+                      電子郵件安全教育宣導<br>
+                </div>
+                <div class="demo-image">
+                    💰 圖片
+                </div>
+                
+                <a href="https://cht365.sharepoint.com/sites/CyberSecurity" target="_blank" class="link-button">前往資通安全</a>
+                <a href="https://cht365.sharepoint.com/sites/CyberSecurity/Shared%20Documents/%E9%9B%BB%E5%AD%90%E9%83%B5%E4%BB%B6%E7%A4%BE%E4%BA%A4%E5%B7%A5%E7%A8%8B%E6%BC%94%E7%B7%B4%E8%88%87%E5%AE%A3%E5%B0%8E_202506.pdf" target="_blank" class="link-button">PDF-電子郵件安全教育宣導</a>
+                
+            </div>
+
+
+            <div class="site-card">
+                <div class="site-name">職安相關</div>
+                <div class="site-description">#職安相關法規 #意外事故 #意外事故處理要點 #高氣溫戶外作業 #熱危害 #人因危害預防</div>
+                <div class="flow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        進入"總公司職安處"網站
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">2.1</div>
+                        網站中間 "職安衛法規新訊"，進入"本公司職安相關法規"網站
+                    </div>
+                </div>
+                <div class="step_big">
+                    <div class="step-number">#</div>
+                      中華電信(股)公司意外事故處理要點 (CHT-SH-I03-08)<br>
+                      → 意外事故處理要點第12條『費用』疑義解釋函 (信勞字第1020000019號)<br>
+                      → 意外事故處理要點第12條『費用』涉外處理補充解釋函 (信勞字第1020000032號)<br>
+                      中華電信(股)公司 高氣溫戶外作業熱危害預防計畫 (CHT-SH-I36-02)<br>
+                      中華電信(股)公司人因性危害預防計畫 (CHT-SH-I22-02)<br>     
+                </div>
+                <br><br>
+
+                <div class="flow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        進入"總公司職安處"網站
+                    </div>
+
+                    <div class="step">
+                        <div class="step-number">2.2</div>
+                        網站左側 "安全衛生作業事項"，進入"安全衛生表單下載"網站
+                    </div>
+                </div>
+                <div class="step_big">
+                    <div class="step-number">#</div>
+                      中華電信股份有限公司職業安全衛生表單文件管理一覽表<br>
+                      → 事故處理/承攬管理/作業管制表單/動火作業/高空工作車作業/吊掛作業/熱危害預防/自動檢查/活線作業
+                      /護具管理/危害物質/環境測定/變更管理/安衛儀器/組織環境/風險評估/法規查核/目標管理/教育訓練
+                      /咨詢溝通/文件管理/安衛績效/矯正預防/紀錄管制/內部稽核/員工餐廳/人因危害預防/母性健康保護
+                      /不法侵害預防/過勞預防<br>
+    
+                </div>
+
+
+                <div class="demo-image">
+                    💰 圖片
+                </div>
+                
+                <a href="https://eip.cht.com.tw/cht-eip-dw/chthq/40588/" target="_blank" class="link-button">總公司職安處</a>
+                <a href="https://eip.cht.com.tw/cht-eip-dw/chthq/40588/law/index_lawcht.htm" target="_blank" class="link-button">本公司職安相關法規</a>
+                <a href="https://eip.cht.com.tw/cht-eip-dw/chthq/40588/OSHMS/%E4%B8%AD%E8%8F%AF%E9%9B%BB%E4%BF%A1%E8%81%B7%E5%AE%89%E8%A1%9B%E7%AE%A1%E7%90%86%E7%B3%BB%E7%B5%B1(%E6%96%B0)/%E7%B3%BB%E7%B5%B1%E6%96%87%E4%BB%B6/%E8%81%B7%E5%AE%89%E8%A1%9B%E7%AE%A1%E7%90%86%E7%B3%BB%E7%B5%B1%E8%A1%A8%E5%96%AE%E6%96%87%E4%BB%B6%E7%B8%BD%E8%A1%A8.htm" target="_blank" class="link-button">職業安全衛生表單文件管理一覽表</a>
+                
+            </div>
+
+
+
+          </div>  
+
+        <div class="guide-section">
+            <h2 class="section-title">
+                <span class="icon">🏦</span>
+                其他
+            </h2>
+            <div class="site-card">
+                <div class="site-name">員工福利</div>
+                <div class="site-description">#人才培育 #津貼補助 #業務優惠 #假 #福利</div>
+                <div class="flow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        進入"組織暨人發處"
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        點選左側「福利專區」
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        1. 員工福利介紹<BR>
+	                      2. 員工福利事項申請資訊<BR>
+                    </div>
+                </div>
+                <div class="demo-image">
+                    🏧 圖片
+                </div>
+                <a href="https://eip.cht.com.tw/new_web/chthq/hr/" target="_blank" class="link-button">組織暨人發處</a>
+                <a href="https://eip.cht.com.tw/new_web/chthq/hr/bulletin/welfare/%E4%B8%AD%E8%8F%AF%E9%9B%BB%E4%BF%A1%E5%93%A1%E5%B7%A5%E7%A6%8F%E5%88%A9%E4%BB%8B%E7%B4%B9.pdf" target="_blank" class="link-button">PDF-中華電信員工福利介紹</a>
+                <a href="https://eip.cht.com.tw/new_web/chthq/hr/html/welfare.html" target="_blank" class="link-button">員工福利事項申請資訊</a>
+            </div>
+        </div>
+
+        <div class="guide-section">
+            <h2 class="section-title">
+                <span class="icon">📚</span>
+                教育機構
+            </h2>
+            <div class="site-card">
+                <div class="site-name">教育部全球資訊網</div>
+                <div class="site-description">教育政策、法規、統計資料</div>
+                <div class="flow-steps">
+                    <div class="step">
+                        <div class="step-number">1</div>
+                        訪問教育部官網
+                    </div>
+                    <div class="step">
+                        <div class="step-number">2</div>
+                        選擇「政策與法規」
+                    </div>
+                    <div class="step">
+                        <div class="step-number">3</div>
+                        依分類查找文件
+                    </div>
+                    <div class="step">
+                        <div class="step-number">4</div>
+                        下載相關資料
+                    </div>
+                </div>
+                <div class="demo-image">
+                    🎓 教育部資源頁面
+                </div>
+                <a href="#" class="link-button">前往教育部</a>
+            </div>
+        </div>
+
+        <div class="warning-box">
+            <h3>⚠️ 重要提醒</h3>
+            <p>請確保從官方網站下載文件，避免使用來源不明的連結，以保護個人資訊安全。</p>
+        </div>
+
+        <div class="tips-box">
+            <h3>💡 實用小技巧</h3>
+            <ul style="text-align: left; margin-left: 20px;">
+                <li>建議將常用網站加入書籤，方便快速存取</li>
+                <li>定期檢查網站是否有更新的表單版本</li>
+                <li>下載文件前先確認檔案格式是否符合需求</li>
+                <li>重要文件建議備份保存</li>
+            </ul>
+        </div>
+
+        <div class="guide-section">
+            <h2 class="section-title">
+                <span class="icon">🔍</span>
+                快速搜尋
+            </h2>
+            <div style="text-align: center;">
+                <input type="text" id="searchBox" placeholder="輸入關鍵字搜尋相關網站..." 
+                       style="width: 80%; max-width: 400px; padding: 15px; border: 2px solid #667eea; border-radius: 25px; font-size: 16px; outline: none;">
+                <button onclick="performSearch()" 
+                        style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 15px 30px; border-radius: 25px; margin-left: 10px; cursor: pointer; font-size: 16px;">
+                    搜尋
+                </button>
+            </div>
+            <div id="searchResults" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // 模擬搜尋功能
+        function performSearch() {
+            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+            const resultsDiv = document.getElementById('searchResults');
+            
+            const mockResults = {
+                '戶政': ['內政部戶政司', '戶籍謄本申請', '身分證換發'],
+                '稅務': ['財政部國稅局', '地方稅務局', '報稅軟體下載'],
+                '教育': ['教育部', '各級學校', '學歷認證'],
+                '銀行': ['網路銀行', '信用卡服務', '貸款申請'],
+                '健保': ['健保署', '健保卡申請', '醫療院所查詢']
+            };
+            
+            let results = [];
+            for (let key in mockResults) {
+                if (searchTerm.includes(key) || key.includes(searchTerm)) {
+                    results = results.concat(mockResults[key]);
+                }
+            }
+            
+            if (results.length > 0) {
+                resultsDiv.innerHTML = `
+                    <div style="background: #e8f5e8; padding: 20px; border-radius: 10px; margin-top: 20px;">
+                        <h4>搜尋結果:</h4>
+                        ${results.map(result => `<div style="margin: 10px 0; padding: 10px; background: white; border-radius: 5px;">📌 ${result}</div>`).join('')}
+                    </div>
+                `;
+            } else if (searchTerm.trim()) {
+                resultsDiv.innerHTML = `
+                    <div style="background: #f8d7da; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center;">
+                        <p>未找到相關結果，請嘗試其他關鍵字</p>
+                    </div>
+                `;
+            } else {
+                resultsDiv.innerHTML = '';
+            }
+        }
+        
+        // Enter鍵搜尋
+        document.getElementById('searchBox').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+        
+        // 添加頁面載入動畫
+        window.addEventListener('load', function() {
+            const sections = document.querySelectorAll('.guide-section');
+            sections.forEach((section, index) => {
+                section.style.animationDelay = `${index * 0.1}s`;
+            });
+        });
+    </script>
+</body>
+</html>
