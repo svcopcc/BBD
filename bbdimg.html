@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>完成圖製圖機</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        .container {
+            max-width: 100%;
+            overflow-x: hidden;
+            padding: 1rem;
+        }
+        canvas {
+            border: 2px solid #e5e7eb;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background-color: #f9fafb;
+            touch-action: none;
+        }
+        .hover-effect {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .hover-effect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.15);
+        }
+        .preview-image-container {
+            position: relative;
+        }
+        .delete-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 9999px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.2s;
+        }
+        .delete-btn:hover {
+            background-color: #dc2626;
+        }
+        input[type="radio"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background-color: #fff;
+            cursor: pointer;
+            position: relative;
+            top: 4px;
+        }
+        input[type="radio"]:checked {
+            border-color: #3b82f6;
+            background-color: #3b82f6;
+        }
+        input[type="radio"]:checked::after {
+            content: '';
+            display: block;
+            width: 0.75rem;
+            height: 0.75rem;
+            border-radius: 50%;
+            background-color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        input[type="checkbox"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            display: inline-block;
+            width: 1.5rem;
+            height: 1.5rem;
+            border: 2px solid #cbd5e1;
+            background-color: #fff;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            position: relative;
+            top: 4px;
+        }
+        input[type="checkbox"]:checked {
+            border-color: #3b82f6;
+            background-color: #3b82f6;
+        }
+        input[type="checkbox"]:checked::after {
+            content: '✓';
+            color: white;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1rem;
+        }
+        .paste-btn {
+            @apply flex items-center justify-center p-2 rounded-md bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors;
+        }
+        .accordion-title {
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .accordion-icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        .accordion-open .accordion-icon {
+            transform: rotate(90deg);
+        }
+        .color-preview {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border-radius: 9999px;
+            border: 1px solid #d1d5db;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .text-input-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <h1 class="text-3xl md:text-4xl font-bold text-center text-blue-600 mb-6">完成圖製圖機</h1>
+        <p class="text-center text-gray-600 mb-8">上傳您的照片並設定文字，來製作一張獨特的九宮格圖片！</p>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 mb-8">
+            <!-- Canvas區域 -->
+            <div class="lg:order-2 flex justify-center items-center p-2 rounded-xl bg-white shadow-lg border border-gray-200">
+                <canvas id="gridCanvas" width="1108" height="1477" class="w-full h-auto rounded-lg"></canvas>
+            </div>
+
+            <!-- 控制面板 -->
+            <div class="lg:order-1 p-6 rounded-xl bg-white shadow-lg border border-gray-200">
+                
+                <!-- 互換按鈕 -->
+                <div class="mt-4 mb-8">
+                    <button id="exchangeButton" class="w-full py-3 px-6 text-white font-bold bg-gray-500 rounded-full hover-effect focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-offset-2">
+                        啟動圖片點點交換
+                    </button>
+                </div>
+
+                <div class="space-y-6">
+                    
+                    <!-- 照片上傳 -->
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2 text-gray-700">1. 上傳照片 (最多8張)</h2>
+                        <label for="imageUpload" class="block w-full text-center py-3 px-6 bg-blue-500 text-white rounded-full cursor-pointer hover-effect">
+                            選擇照片
+                        </label>
+                        <input type="file" id="imageUpload" class="hidden" multiple accept="image/*">
+                        <div id="previewContainer" class="flex flex-wrap gap-4 mt-4"></div>
+                    </div>
+
+                    <!-- 文字格子設定 -->
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2 text-gray-700">2. 設定文字格</h2>
+                        <div class="grid grid-cols-3 gap-2 text-center text-sm">
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="0" class="mr-1"> 1
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="1" class="mr-1"> 2
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="2" class="mr-1"> 3
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="3" class="mr-1"> 4
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="4" class="mr-1"> 5
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="5" class="mr-1"> 6
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="6" class="mr-1"> 7
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="7" class="mr-1"> 8
+                            </label>
+                            <label class="p-2 border border-gray-300 rounded-md cursor-pointer hover:bg-gray-100 transition-colors">
+                                <input type="radio" name="textPosition" value="8" class="mr-1" checked> 9
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 文字內容設定 -->
+                    <div>
+                        <h2 class="text-xl font-semibold mb-2 text-gray-700">3. 設定文字內容</h2>
+                        <div class="space-y-4">
+                            <!-- 第一列 -->
+                            <div>
+                                <label for="textLine1" class="block text-sm font-medium text-gray-600">第一列</label>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="text" id="textLine1" placeholder="請輸入第一列文字" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                                    <button id="pasteButton" class="paste-btn">📋</button>
+                                </div>
+                            </div>
+                            <!-- 第二列 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600">第二列</label>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="checkbox" id="checkboxLine2">
+                                    <label for="checkboxLine2" class="text-sm">拉線鐵塔保養</label>
+                                </div>
+                                <input type="text" id="textLine2" placeholder="或自行輸入文字" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            </div>
+                            <!-- 第三列 -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600">第三列</label>
+                                <div class="flex items-center space-x-2 mt-1">
+                                    <input type="checkbox" id="checkboxLine3">
+                                    <label for="checkboxLine3" class="text-sm">今日</label>
+                                </div>
+                                <input type="date" id="datePicker" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 進階功能區塊 -->
+                <div class="mt-8">
+                    <div class="accordion-title font-semibold text-gray-700" id="accordionTitle">
+                        <h2 class="text-xl">進階功能</h2>
+                        <div class="accordion-icon transition-transform transform">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div id="accordionContent" class="space-y-4 mt-4 hidden">
+                        <!-- 1. 調整邊框大小 -->
+                        <div>
+                            <label for="borderWidthInput" class="block text-sm font-medium text-gray-600">邊框大小</label>
+                            <input type="range" id="borderWidthInput" min="0" max="50" value="9" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="text-xs text-gray-500 text-right"><span id="borderWidthValue">9</span> px</div>
+                        </div>
+                        
+                        <!-- 2. 調整文字格子的背景顏色 -->
+                        <div class="text-input-group">
+                            <label for="textBgColorInput" class="text-sm font-medium text-gray-600">文字格背景色</label>
+                            <div class="flex items-center">
+                                <span class="color-preview" style="background-color: #f9fafb;"></span>
+                                <input type="color" id="textBgColorInput" value="#f9fafb" class="h-8 w-8 rounded-md cursor-pointer border-none p-0">
+                            </div>
+                        </div>
+
+                        <!-- 3. 調整文字顏色 -->
+                        <div class="text-input-group">
+                            <label for="textColorInput" class="text-sm font-medium text-gray-600">文字顏色</label>
+                            <div class="flex items-center">
+                                <span class="color-preview" style="background-color: #1f2937;"></span>
+                                <input type="color" id="textColorInput" value="#1f2937" class="h-8 w-8 rounded-md cursor-pointer border-none p-0">
+                            </div>
+                        </div>
+
+                        <!-- 4. 調整顯示的日期格式 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600">日期格式</h3>
+                            <div class="mt-2 space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="dateFormat" value="gregorian" class="form-radio">
+                                    <span class="ml-2 text-sm text-gray-700">西元年/月/日</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="dateFormat" value="roc" class="form-radio" checked>
+                                    <span class="ml-2 text-sm text-gray-700">民國年/月/日</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 5. 恢復預設按鈕 -->
+                        <button id="resetButton" class="w-full py-2 px-4 text-white font-bold bg-blue-500 rounded-full hover-effect focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2">
+                            恢復預設
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 匯出按鈕 -->
+                <div class="mt-8 space-y-4">
+                    <button id="exportButton" class="w-full py-3 px-6 text-white font-bold bg-green-500 rounded-full hover-effect focus:outline-none focus:ring-2 focus:ring-green-300 focus:ring-offset-2">
+                        匯出成圖片
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gridCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageUpload = document.getElementById('imageUpload');
+        const textPositionRadios = document.getElementsByName('textPosition');
+        const textLine1Input = document.getElementById('textLine1');
+        const checkboxLine2 = document.getElementById('checkboxLine2');
+        const textLine2Input = document.getElementById('textLine2');
+        const checkboxLine3 = document.getElementById('checkboxLine3');
+        const datePicker = document.getElementById('datePicker');
+        const exportButton = document.getElementById('exportButton');
+        const pasteButton = document.getElementById('pasteButton');
+        const previewContainer = document.getElementById('previewContainer');
+        const exchangeButton = document.getElementById('exchangeButton');
+
+        // 進階功能 DOM
+        const accordionTitle = document.getElementById('accordionTitle');
+        const accordionContent = document.getElementById('accordionContent');
+        const accordionIcon = accordionTitle.querySelector('.accordion-icon');
+        const borderWidthInput = document.getElementById('borderWidthInput');
+        const borderWidthValue = document.getElementById('borderWidthValue');
+        const textBgColorInput = document.getElementById('textBgColorInput');
+        const textColorInput = document.getElementById('textColorInput');
+        const dateFormatRadios = document.getElementsByName('dateFormat');
+        const resetButton = document.getElementById('resetButton');
+
+        const CANVAS_WIDTH = 1108;
+        const CANVAS_HEIGHT = 1477;
+        const BORDER_RADIUS = 20;
+
+        // 預設進階設定值
+        const DEFAULT_BORDER_WIDTH = 9;
+        const DEFAULT_TEXT_BG_COLOR = '#f9fafb';
+        const DEFAULT_TEXT_COLOR = '#1f2937';
+        
+        // 變數
+        let borderWidth = DEFAULT_BORDER_WIDTH;
+        let canvasColor = '#f9fafb'; // 畫布顏色為固定值，但變數保留
+        let textBgColor = DEFAULT_TEXT_BG_COLOR;
+        let textColor = DEFAULT_TEXT_COLOR;
+        let dateFormat = 'roc';
+
+        let uploadedImages = [];
+        let textCellPosition = 8;
+        let isDragging = false;
+        let draggedItemIndex = -1;
+        let lastX = 0;
+        let lastY = 0;
+        let gridLayout = {};
+
+        let isExchangeModeActive = false;
+        let clickedCells = [];
+
+        const allControls = [
+            imageUpload,
+            textLine1Input,
+            checkboxLine2,
+            textLine2Input,
+            checkboxLine3,
+            datePicker,
+            exportButton,
+            pasteButton,
+            borderWidthInput,
+            textBgColorInput,
+            textColorInput
+        ];
+        textPositionRadios.forEach(radio => allControls.push(radio));
+        dateFormatRadios.forEach(radio => allControls.push(radio));
+
+        function getGridLayout(itemCount) {
+            if (itemCount <= 0) return { rows: 1, cols: 1 };
+            if (itemCount === 1) return { rows: 1, cols: 1 };
+            if (itemCount === 2) return { rows: 2, cols: 1 };
+            if (itemCount === 3) return { rows: 3, cols: 1 };
+            if (itemCount === 4) return { rows: 2, cols: 2 };
+            if (itemCount <= 6) return { rows: 3, cols: 2 };
+            if (itemCount <= 8) return { rows: 4, cols: 2 };
+            return { rows: 3, cols: 3 };
+        }
+
+        function drawRoundedRect(x, y, width, height, radius) {
+            ctx.beginPath();
+            ctx.moveTo(x + radius, y);
+            ctx.lineTo(x + width - radius, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+            ctx.lineTo(x + width, y + height - radius);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            ctx.lineTo(x + radius, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+            ctx.lineTo(x, y + radius);
+            ctx.quadraticCurveTo(x, y, x + radius, y);
+            ctx.closePath();
+        }
+
+        function drawImageWithBorder(imageData, x, y, width, height) {
+            const { image, offsetX, offsetY } = imageData;
+
+            ctx.fillStyle = 'white';
+            drawRoundedRect(x, y, width, height, BORDER_RADIUS);
+            ctx.fill();
+
+            const innerX = x + borderWidth;
+            const innerY = y + borderWidth;
+            const innerWidth = width - borderWidth * 2;
+            const innerHeight = height - borderWidth * 2;
+
+            const imageAspectRatio = image.width / image.height;
+            const cellAspectRatio = innerWidth / innerHeight;
+
+            let sourceX = 0;
+            let sourceY = 0;
+            let sourceWidth = image.width;
+            let sourceHeight = image.height;
+
+            if (imageAspectRatio > cellAspectRatio) {
+                sourceHeight = image.height;
+                sourceWidth = image.height * cellAspectRatio;
+                sourceX = (image.width - sourceWidth) / 2 - offsetX;
+            } else {
+                sourceWidth = image.width;
+                sourceHeight = image.width / cellAspectRatio;
+                sourceY = (image.height - sourceHeight) / 2 - offsetY;
+            }
+
+            ctx.save();
+            drawRoundedRect(innerX, innerY, innerWidth, innerHeight, BORDER_RADIUS / 2);
+            ctx.clip();
+            ctx.drawImage(image, sourceX, sourceY, sourceWidth, sourceHeight, innerX, innerY, innerWidth, innerHeight);
+            ctx.restore();
+        }
+
+        function drawTextCell(text, x, y, width, height) {
+            // 繪製背景
+            ctx.fillStyle = 'white';
+            ctx.fillRect(x, y, width, height);
+            
+            ctx.fillStyle = textBgColor;
+            drawRoundedRect(x + borderWidth, y + borderWidth, width - borderWidth * 2, height - borderWidth * 2, BORDER_RADIUS / 2);
+            ctx.fill();
+
+            const innerX = x + borderWidth;
+            const innerY = y + borderWidth;
+            const innerWidth = width - borderWidth * 2;
+            const innerHeight = height - borderWidth * 2;
+            const lines = text.split('\n');
+            
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+
+            // --- 繪製第一列文字 ---
+            const mainLine = lines[0] || '';
+            let mainFontSize = innerHeight; 
+            do {
+                mainFontSize--;
+                ctx.font = `bold ${mainFontSize}px Arial, sans-serif`;
+            } while (ctx.measureText(mainLine).width > innerWidth || mainFontSize * 1.2 > innerHeight * 0.7);
+
+            const mainLineHeight = mainFontSize * 1.2;
+            
+            // --- 繪製第二、三列文字 ---
+            const smallFontSize = 48; // 固定字體大小
+            ctx.font = `${smallFontSize}px Arial, sans-serif`;
+            const smallLineHeight = smallFontSize * 1.2;
+            
+            const totalHeight = mainLineHeight + (lines.length > 1 ? smallLineHeight : 0) + (lines.length > 2 ? smallLineHeight : 0);
+            const startY = innerY + (innerHeight - totalHeight) / 2;
+
+            // 繪製第一列
+            ctx.textBaseline = 'middle';
+            ctx.font = `bold ${mainFontSize}px Arial, sans-serif`;
+            ctx.fillText(mainLine, innerX + innerWidth / 2, startY + mainLineHeight / 2);
+
+            // 繪製第二、三列
+            ctx.font = `${smallFontSize}px Arial, sans-serif`;
+            if (lines.length > 1) {
+                ctx.fillText(lines[1], innerX + innerWidth / 2, startY + mainLineHeight + smallLineHeight / 2);
+            }
+            if (lines.length > 2) {
+                ctx.fillText(lines[2], innerX + innerWidth / 2, startY + mainLineHeight + smallLineHeight + smallLineHeight / 2);
+            }
+        }
+        
+        function drawSelectionBorder(index, color) {
+            const { rows, cols } = gridLayout;
+            const cellWidth = CANVAS_WIDTH / cols;
+            const cellHeight = CANVAS_HEIGHT / rows;
+            const x = (index % cols) * cellWidth;
+            const y = Math.floor(index / cols) * cellHeight;
+
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 10;
+            ctx.lineJoin = 'round';
+            drawRoundedRect(x + 5, y + 5, cellWidth - 10, cellHeight - 10, BORDER_RADIUS);
+            ctx.stroke();
+        }
+
+        async function drawGrid() {
+            ctx.fillStyle = canvasColor;
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+            
+            const totalItems = uploadedImages.length + 1;
+            gridLayout = getGridLayout(totalItems);
+            const { rows, cols } = gridLayout;
+            const cellWidth = CANVAS_WIDTH / cols;
+            const cellHeight = CANVAS_HEIGHT / rows;
+            
+            const text1 = textLine1Input.value.trim() || '';
+            const text2 = checkboxLine2.checked ? '拉線鐵塔保養' : (textLine2Input.value.trim() || '');
+            
+            let dateText = '';
+            if (checkboxLine3.checked) {
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = (today.getMonth() + 1).toString().padStart(2, '0');
+                const day = today.getDate().toString().padStart(2, '0');
+                if (dateFormat === 'roc') {
+                    dateText = `${year - 1911}/${month}/${day}`;
+                } else {
+                    dateText = `${year}/${month}/${day}`;
+                }
+            } else {
+                if (datePicker.value) {
+                    const [year, month, day] = datePicker.value.split('-').map(Number);
+                    if (dateFormat === 'roc') {
+                        dateText = `${year - 1911}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`;
+                    } else {
+                        dateText = `${year}/${month.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}`;
+                    }
+                } else {
+                    dateText = '';
+                }
+            }
+            const text3 = `${dateText} 完成`;
+            const textContent = `${text1}\n${text2}\n${text3}`;
+
+            const allItems = [...uploadedImages];
+            const finalTextCellPosition = Math.min(textCellPosition, allItems.length);
+            allItems.splice(finalTextCellPosition, 0, { isText: true, content: textContent });
+            
+            for (let i = 0; i < allItems.length; i++) {
+                const x = (i % cols) * cellWidth;
+                const y = Math.floor(i / cols) * cellHeight;
+                const item = allItems[i];
+
+                if (item.isText) {
+                    drawTextCell(item.content, x, y, cellWidth, cellHeight);
+                } else if (item.image) {
+                    drawImageWithBorder(item, x, y, cellWidth, cellHeight);
+                } else {
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(x, y, cellWidth, cellHeight);
+                    
+                    ctx.fillStyle = '#e5e7eb';
+                    drawRoundedRect(x + borderWidth, y + borderWidth, cellWidth - borderWidth * 2, cellHeight - borderWidth * 2, BORDER_RADIUS / 2);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#9ca3af';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.font = '24px Arial, sans-serif';
+                    ctx.fillText('載入失敗', x + cellWidth / 2, y + cellHeight / 2);
+                }
+            }
+            
+            // Draw selection border if in exchange mode
+            if (isExchangeModeActive && clickedCells.length > 0) {
+                drawSelectionBorder(clickedCells[0], '#f97316');
+            }
+        }
+
+        function renderPreview() {
+            previewContainer.innerHTML = '';
+            uploadedImages.forEach((imgData, index) => {
+                const container = document.createElement('div');
+                container.className = 'relative preview-image-container';
+
+                const img = document.createElement('img');
+                img.src = imgData.url;
+                img.className = 'w-16 h-16 rounded-md object-cover border border-gray-300';
+                
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.innerHTML = '&times;';
+                deleteBtn.dataset.index = index;
+
+                container.appendChild(img);
+                container.appendChild(deleteBtn);
+                previewContainer.appendChild(container);
+            });
+            drawGrid();
+        }
+
+        async function processFile(file) {
+            return new Promise(resolve => {
+                const url = URL.createObjectURL(file);
+                const img = new Image();
+                img.onload = () => {
+                    resolve({
+                        file,
+                        url,
+                        image: img,
+                        offsetX: 0,
+                        offsetY: 0
+                    });
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(url);
+                    resolve(null);
+                };
+                img.src = url;
+            });
+        }
+
+        imageUpload.addEventListener('change', async (e) => {
+            if (isExchangeModeActive) return;
+            const files = Array.from(e.target.files).slice(0, 8 - uploadedImages.length);
+            for (const file of files) {
+                const imageData = await processFile(file);
+                if (imageData) {
+                    uploadedImages.push(imageData);
+                }
+            }
+            renderPreview();
+        });
+
+        previewContainer.addEventListener('click', (e) => {
+            if (isExchangeModeActive) return;
+            if (e.target.classList.contains('delete-btn')) {
+                const index = parseInt(e.target.dataset.index, 10);
+                if (!isNaN(index)) {
+                    URL.revokeObjectURL(uploadedImages[index].url);
+                    uploadedImages.splice(index, 1);
+                    renderPreview();
+                }
+            }
+        });
+
+        textPositionRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                if (isExchangeModeActive) return;
+                textCellPosition = parseInt(e.target.value, 10);
+                drawGrid();
+            });
+        });
+
+        textLine1Input.addEventListener('input', () => { if (!isExchangeModeActive) drawGrid(); });
+        textLine2Input.addEventListener('input', () => { if (!isExchangeModeActive) drawGrid(); });
+        datePicker.addEventListener('change', () => { if (!isExchangeModeActive) drawGrid(); });
+        checkboxLine2.addEventListener('change', () => {
+            if (isExchangeModeActive) return;
+            textLine2Input.disabled = checkboxLine2.checked;
+            if (checkboxLine2.checked) textLine2Input.value = '';
+            drawGrid();
+        });
+        checkboxLine3.addEventListener('change', () => {
+            if (isExchangeModeActive) return;
+            datePicker.disabled = checkboxLine3.checked;
+            if (checkboxLine3.checked) datePicker.value = '';
+            drawGrid();
+        });
+
+        pasteButton.addEventListener('click', async () => {
+            if (isExchangeModeActive) return;
+            try {
+                const text = await navigator.clipboard.readText();
+                textLine1Input.value = text;
+                drawGrid();
+            } catch (err) {
+                console.error('無法貼上文字:', err);
+            }
+        });
+
+        exportButton.addEventListener('click', () => {
+            if (isExchangeModeActive) return;
+            drawGrid().then(() => {
+                canvas.toBlob(function(blob) {
+                    if (blob === null) {
+                        console.error('無法建立 Blob。');
+                        return;
+                    }
+                    const link = document.createElement('a');
+                    link.download = '完成圖.png';
+                    link.href = URL.createObjectURL(blob);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                }, 'image/png');
+            });
+        });
+
+        function getCanvasMousePos(event) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let x, y;
+            if (event.touches) {
+                x = (event.touches[0].clientX - rect.left) * scaleX;
+                y = (event.touches[0].clientY - rect.top) * scaleY;
+            } else {
+                x = (event.clientX - rect.left) * scaleX;
+                y = (event.clientY - rect.top) * scaleY;
+            }
+            return { x, y };
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (isExchangeModeActive) return;
+            handleDragStart(e);
+        });
+        canvas.addEventListener('touchstart', (e) => {
+            if (isExchangeModeActive) return;
+            handleDragStart(e);
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (isExchangeModeActive) return;
+            handleDragMove(e);
+        });
+        canvas.addEventListener('touchmove', (e) => {
+            if (isExchangeModeActive) return;
+            handleDragMove(e);
+        });
+        canvas.addEventListener('mouseup', handleDragEnd);
+        canvas.addEventListener('touchend', handleDragEnd);
+        canvas.addEventListener('mouseleave', handleDragEnd);
+        
+        canvas.addEventListener('click', (e) => {
+            if (!isExchangeModeActive) return;
+            const { x, y } = getCanvasMousePos(e);
+            const { rows, cols } = gridLayout;
+            const cellWidth = CANVAS_WIDTH / cols;
+            const cellHeight = CANVAS_HEIGHT / rows;
+            
+            const col = Math.floor(x / cellWidth);
+            const row = Math.floor(y / cellHeight);
+            const index = row * cols + col;
+
+            clickedCells.push(index);
+
+            if (clickedCells.length === 1) {
+                drawGrid();
+                drawSelectionBorder(clickedCells[0], '#f97316');
+            } else if (clickedCells.length === 2) {
+                const [index1, index2] = clickedCells;
+                
+                const textContent = `${textLine1Input.value.trim()}\n${checkboxLine2.checked ? '拉線鐵塔保養' : (textLine2Input.value.trim() || '')}\n${(checkboxLine3.checked ? new Date().getFullYear() + '/' + (new Date().getMonth() + 1).toString().padStart(2, '0') + '/' + new Date().getDate().toString().padStart(2, '0') : (datePicker.value ? datePicker.value.replace(/-/g, '/') : ''))} 完成`;
+                let allItems = [...uploadedImages];
+                allItems.splice(textCellPosition, 0, { isText: true, content: textContent });
+
+                [allItems[index1], allItems[index2]] = [allItems[index2], allItems[index1]];
+
+                uploadedImages = allItems.filter(item => !item.isText);
+                textCellPosition = allItems.findIndex(item => item.isText);
+
+                clickedCells = [];
+                drawGrid();
+                renderPreview();
+            }
+        });
+
+        function handleDragStart(e) {
+            e.preventDefault();
+            const { x, y } = getCanvasMousePos(e);
+            const { rows, cols } = gridLayout;
+            const cellWidth = CANVAS_WIDTH / cols;
+            const cellHeight = CANVAS_HEIGHT / rows;
+            
+            const col = Math.floor(x / cellWidth);
+            const row = Math.floor(y / cellHeight);
+            const index = row * cols + col;
+
+            const allItems = [...uploadedImages];
+            const finalTextCellPosition = Math.min(textCellPosition, allItems.length);
+            allItems.splice(finalTextCellPosition, 0, { isText: true });
+
+            if (index < allItems.length && !allItems[index].isText) {
+                isDragging = true;
+                
+                draggedItemIndex = index;
+                if (draggedItemIndex > finalTextCellPosition) {
+                    draggedItemIndex--;
+                }
+                
+                lastX = x;
+                lastY = y;
+            }
+        }
+
+        function handleDragMove(e) {
+            if (!isDragging || draggedItemIndex === -1) return;
+            e.preventDefault();
+            const { x, y } = getCanvasMousePos(e);
+
+            const dx = x - lastX;
+            const dy = y - lastY;
+
+            const { rows, cols } = gridLayout;
+            const cellWidth = CANVAS_WIDTH / cols;
+            const cellHeight = CANVAS_HEIGHT / rows;
+
+            const imageData = uploadedImages[draggedItemIndex];
+            if (imageData && imageData.image) {
+                const innerWidth = cellWidth - borderWidth * 2;
+                const innerHeight = cellHeight - borderWidth * 2;
+                const imageAspectRatio = imageData.image.width / imageData.image.height;
+                const cellAspectRatio = innerWidth / innerHeight;
+
+                const scaleFactor = imageAspectRatio > cellAspectRatio ? imageData.image.width / innerWidth : imageData.image.height / innerHeight;
+                
+                imageData.offsetX -= dx * scaleFactor;
+                imageData.offsetY -= dy * scaleFactor;
+
+                if (imageAspectRatio > cellAspectRatio) {
+                    const maxOffset = (imageData.image.width - imageData.image.height * cellAspectRatio) / 2;
+                    imageData.offsetX = Math.max(-maxOffset, Math.min(maxOffset, imageData.offsetX));
+                } else {
+                    const maxOffset = (imageData.image.height - imageData.image.width / cellAspectRatio) / 2;
+                    imageData.offsetY = Math.max(-maxOffset, Math.min(maxOffset, imageData.offsetY));
+                }
+
+                drawGrid();
+            }
+
+            lastX = x;
+            lastY = y;
+        }
+
+        function handleDragEnd() {
+            isDragging = false;
+            draggedItemIndex = -1;
+        }
+        
+        exchangeButton.addEventListener('click', () => {
+            isExchangeModeActive = !isExchangeModeActive;
+            clickedCells = [];
+            if (isExchangeModeActive) {
+                exchangeButton.textContent = '關閉圖片點點交換';
+                exchangeButton.classList.remove('bg-gray-500', 'hover:bg-gray-600');
+                exchangeButton.classList.add('bg-orange-500', 'hover:bg-orange-600');
+                allControls.forEach(control => {
+                    if (control.type === 'radio') {
+                         control.disabled = true;
+                    } else {
+                        control.disabled = true;
+                    }
+                });
+                document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radio.parentElement.classList.add('pointer-events-none');
+                });
+            } else {
+                exchangeButton.textContent = '啟動圖片點點交換';
+                exchangeButton.classList.remove('bg-orange-500', 'hover:bg-orange-600');
+                exchangeButton.classList.add('bg-gray-500', 'hover:bg-gray-600');
+                allControls.forEach(control => {
+                    control.disabled = false;
+                });
+                document.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radio.parentElement.classList.remove('pointer-events-none');
+                });
+                drawGrid();
+            }
+        });
+
+        // 進階功能事件監聽
+        accordionTitle.addEventListener('click', () => {
+            const isContentVisible = accordionContent.classList.toggle('hidden');
+            accordionIcon.style.transform = isContentVisible ? 'rotate(0deg)' : 'rotate(90deg)';
+        });
+
+        borderWidthInput.addEventListener('input', (e) => {
+            borderWidth = parseInt(e.target.value, 10);
+            borderWidthValue.textContent = borderWidth;
+            drawGrid();
+        });
+
+        textBgColorInput.addEventListener('input', (e) => {
+            textBgColor = e.target.value;
+            e.target.previousElementSibling.style.backgroundColor = textBgColor;
+            drawGrid();
+        });
+
+        textColorInput.addEventListener('input', (e) => {
+            textColor = e.target.value;
+            e.target.previousElementSibling.style.backgroundColor = textColor;
+            drawGrid();
+        });
+
+        dateFormatRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                dateFormat = e.target.value;
+                drawGrid();
+            });
+        });
+
+        resetButton.addEventListener('click', () => {
+            // 恢復邊框預設值
+            borderWidth = 9;
+            borderWidthInput.value = 9;
+            borderWidthValue.textContent = 9;
+
+            // 恢復文字格子背景色預設值
+            textBgColor = '#f9fafb';
+            textBgColorInput.value = '#f9fafb';
+            textBgColorInput.previousElementSibling.style.backgroundColor = '#f9fafb';
+
+            // 恢復文字顏色預設值
+            textColor = '#1f2937';
+            textColorInput.value = '#1f2937';
+            textColorInput.previousElementSibling.style.backgroundColor = '#1f2937';
+            
+            // 恢復日期格式預設值
+            dateFormat = 'roc';
+            document.querySelector('input[name="dateFormat"][value="roc"]').checked = true;
+
+            drawGrid();
+        });
+
+        drawGrid();
+    </script>
+</body>
+</html>
+
