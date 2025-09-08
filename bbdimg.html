@@ -490,23 +490,19 @@
             const totalHeight = mainLineHeight + (lines.length > 1 ? smallLineHeight : 0) + (lines.length > 2 ? smallLineHeight : 0);
             const startY = innerY + (innerHeight - totalHeight) / 2;
 
-            // 繪製第一列文字...
-            const mainLine = lines[0] || '';
-            let mainFontSize = innerHeight; // 讓第一行文字大小適應高度
-            do {
-                mainFontSize--;
-                ctx.font = `bold ${mainFontSize}px Arial, sans-serif`;
-            } while (ctx.measureText(mainLine).width > innerWidth || mainFontSize * 1.2 > innerHeight * 0.7);
-        
-            const mainLineHeight = mainFontSize * 1.2;
-            
-            // --- 繪製第二、三列文字 ---
-            const smallFontSize = mainFontSize * 0.5; // 根據第一行文字大小動態調整
+            // 繪製第一列
+            ctx.textBaseline = 'middle';
+            ctx.font = `bold ${mainFontSize}px Arial, sans-serif`;
+            ctx.fillText(mainLine, innerX + innerWidth / 2, startY + mainLineHeight / 2);
+
+            // 繪製第二、三列
             ctx.font = `${smallFontSize}px Arial, sans-serif`;
-            const smallLineHeight = smallFontSize * 1.2;
-            
-            const totalHeight = mainLineHeight + (lines.length > 1 ? smallLineHeight : 0) + (lines.length > 2 ? smallLineHeight : 0);
-            const startY = innerY + (innerHeight - totalHeight) / 2;
+            if (lines.length > 1) {
+                ctx.fillText(lines[1], innerX + innerWidth / 2, startY + mainLineHeight + smallLineHeight / 2);
+            }
+            if (lines.length > 2) {
+                ctx.fillText(lines[2], innerX + innerWidth / 2, startY + mainLineHeight + smallLineHeight + smallLineHeight / 2);
+            }
 
             
         }
