@@ -699,7 +699,9 @@
                         return;
                     }
                     const link = document.createElement('a');
-                    link.download = '完成圖.png';
+                    const textLine1Value = textLine1Input.value.trim();
+                    const filename = textLine1Value ? `${textLine1Value}-完成.png` : '完成圖.png';
+                    link.download = filename;
                     link.href = URL.createObjectURL(blob);
                     document.body.appendChild(link);
                     link.click();
