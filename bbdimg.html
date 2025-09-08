@@ -483,7 +483,7 @@
             const mainLineHeight = mainFontSize * 1.2;
             
             // --- 繪製第二、三列文字 ---
-            const smallFontSize = 48; // 固定字體大小
+            const smallFontSize = mainFontSize * 0.5; // 根據第一行文字大小動態調整
             ctx.font = `${smallFontSize}px Arial, sans-serif`;
             const smallLineHeight = smallFontSize * 1.2;
             
