@@ -4,11 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 	
-	<!-- PDF.js -->
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.js"></script>
-	<script>
-	  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.worker.min.js";
+	<!-- PDF.js ESM（使用本地檔） -->
+	<script type="module">
+	  import * as pdfjsLib from "./pdf.min.mjs";
+	  // 指定本地 worker（與本檔同資料夾）
+	  pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.min.mjs";
+	  // 讓底部的非 module <script> 也能用到 pdfjsLib
+	  window.pdfjsLib = pdfjsLib;
 	</script>
+
 
     <title>多主題問答搜尋器</title>
 	<!-- 新版 favicon (SVG) -->
