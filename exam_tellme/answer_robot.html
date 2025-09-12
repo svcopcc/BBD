@@ -3,24 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-	
-	<!-- PDF.js ESM（使用本地檔） -->
-	<script type="module">
-	  import * as pdfjsLib from "./pdf.min.mjs";
-	  // 指定本地 worker（與本檔同資料夾）
-	  pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.min.mjs";
-	  // 讓底部的非 module <script> 也能用到 pdfjsLib
-	  window.pdfjsLib = pdfjsLib;
-	</script>
-
-
-    <title>多主題問答搜尋器</title>
+    <title>問答解析搜尋器</title>
 	<!-- 新版 favicon (SVG) -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     
     <!-- 備用 favicon (PNG/ICO) 給不支援的瀏覽器 -->
     <link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
-	
 	
     <!-- 引入 Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -38,249 +26,220 @@
             display: inline-block;
         }
     </style>
+    <!-- 引入 PDF.js 函式庫 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // 設定 PDF.js worker 的路徑
+        pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    </script>
 </head>
 <body class="p-4 sm:p-8">
     <div class="max-w-4xl mx-auto bg-white p-6 sm:p-10 rounded-xl shadow-lg">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">多主題問答搜尋器</h1>
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">PDF 問答解析搜尋器 V. 1.1</h1>
         <p class="text-gray-600 text-center mb-8">
-            從下拉選單中選擇一個主題，然後使用下方的搜尋欄位來尋找您想了解的題目。
+            程式將自動讀取指定的 PDF 檔案，並允許您搜尋題目。
         </p>
 
-		<!-- PDF 載入區 -->
-		<div class="mb-6 grid gap-3 sm:grid-cols-3">
-		  <div class="sm:col-span-2">
-			<label class="block text-gray-700 font-semibold mb-2">PDF 網址：</label>
-			<input id="pdf-url" type="url" placeholder="http://...（填入 PDF 連結）"
-				   class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
-			<p class="text-xs text-gray-500 mt-1">若跨網域被擋，請用下方「本機選檔」。</p>
-		  </div>
-		  <div>
-			<label class="block text-gray-700 font-semibold mb-2">或選擇本機 PDF：</label>
-			<input id="pdf-file" type="file" accept="application/pdf"
-				   class="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4
-						  file:rounded-lg file:border-0 file:text-sm file:font-semibold
-						  file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
-		  </div>
-		  <div class="sm:col-span-3">
-			<button id="load-pdf" class="w-full py-2 px-4 rounded-lg bg-blue-600 text-white font-semibold hover:bg-blue-700">
-			  讀取 PDF
-			</button>
-		  </div>
-		</div>
-
-
-        <!-- 主題選擇區塊 -->
+        <!-- 主題選擇區塊 (顯示上傳的檔案名稱) -->
         <div class="mb-6">
-            <label for="topic-select" class="block text-gray-700 font-semibold mb-2">請選擇題目主題：</label>
-            <select id="topic-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
-                <option value="114_資安宣導">114年度資安及個資保護宣導</option>
-                <option value="其他主題範例">其他主題範例 (請替換)</option>
+            <label for="topic-select" class="block text-gray-700 font-semibold mb-2">已讀取檔案：</label>
+            <select id="topic-select" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm bg-gray-50 cursor-not-allowed">
+                <option value="https://feixu.tw/BBD/doc57/114%E5%B9%B4%E5%BA%A6%E8%B3%87%E5%AE%89%E5%8F%8A%E5%80%8B%E8%B3%87%E4%BF%9D%E8%AD%B7%E5%AE%A3%E5%80%8B.pdf">114年度資安及個資保護宣導</option>
             </select>
         </div>
 
         <!-- 搜尋輸入框 -->
         <div class="mb-8">
             <label for="search-input" class="block text-gray-700 font-semibold mb-2">請輸入關鍵字來搜尋題目：</label>
-            <input type="text" id="search-input" placeholder="例如：硬碟、個資" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
+            <input type="text" id="search-input" placeholder="例如：硬碟、個資" class="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300" disabled>
         </div>
-		
-		<!-- 搜尋按鈕 -->
-		<div class="mt-4 flex space-x-2">
-		  <input id="search-input" type="text"
-				 placeholder="輸入關鍵字搜尋題目"
-				 class="flex-1 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-300">
-		  <button id="search-btn"
-				  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-			搜尋
-		  </button>
-		</div>
-
 
         <!-- 顯示搜尋結果的區塊 -->
         <div id="quiz-container" class="space-y-8">
             <!-- 搜尋結果將動態載入至此 -->
         </div>
+
+        <!-- 狀態與錯誤訊息 -->
+        <div id="status-message" class="mt-8 text-center text-red-500 font-semibold">正在讀取檔案...</div>
     </div>
 
     <script>
-	document.addEventListener('DOMContentLoaded', () => {
-	  const searchInput   = document.getElementById('search-input');
-	  const quizContainer = document.getElementById('quiz-container');
+        const topicSelect = document.getElementById('topic-select');
+        const searchInput = document.getElementById('search-input');
+        const quizContainer = document.getElementById('quiz-container');
+        const statusMessage = document.getElementById('status-message');
 
-	  const pdfUrlInput = document.getElementById('pdf-url');
-	  const pdfFileInput = document.getElementById('pdf-file');
-	  const loadBtn = document.getElementById('load-pdf');
+        let quizData = [];
 
-	  // ====== 偵測參數（針對你題目圖示在左邊的情況） ======
-	  const DETECT = {
-		leftMaxPx: 60,
-		leftMinPx: 12,
-		yPadPx: 14,
-		gridStepX: 6,
-		gridStepY: 6,
-		hitNeeded: 10,
-		yellow: {
-		  rMin: 200, gMin: 160, bMax: 110,
-		  rgDiffMin: 20, minAlpha: 10
-		}
-	  };
+        // 監聽頁面載入事件，自動下載並解析 PDF
+        document.addEventListener('DOMContentLoaded', async () => {
+            const url = topicSelect.value;
+            statusMessage.textContent = '正在解析檔案，請稍候...';
+            searchInput.disabled = true;
 
-	  let quizData = [];
+            try {
+                // 使用 fetch 請求指定的 PDF 網址
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}`);
+                }
+                const arrayBuffer = await response.arrayBuffer();
+                
+                // 解析 PDF 檔案
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                const questions = await parsePdfQuestions(pdf);
+                
+                if (questions.length === 0) {
+                    statusMessage.textContent = '找不到任何問答題目。請確認檔案格式是否正確。';
+                    return;
+                }
+                
+                quizData = questions;
+                statusMessage.textContent = `成功讀取 ${questions.length} 個題目！`;
+                searchInput.disabled = false;
+                
+                // 初始顯示所有題目
+                filterQuiz();
+            } catch (error) {
+                statusMessage.textContent = `讀取檔案失敗：${error.message}。請確認網址正確且沒有跨來源（CORS）限制。`;
+            }
+        });
 
-	  // 渲染題目
-	  function renderQuiz(data) {
-		quizContainer.innerHTML = '';
-		if (!data || data.length === 0) {
-		  quizContainer.innerHTML = '<p class="text-center text-gray-500">找不到相符的題目。</p>';
-		  return;
-		}
-		data.forEach((quiz, idx) => {
-		  const item = document.createElement('div');
-		  item.className = 'bg-gray-100 p-6 rounded-lg shadow-sm';
-		  let html = `<p class="text-lg font-bold text-gray-800 mb-4">Q${idx+1}. ${quiz.question}</p><ul class="list-none space-y-2">`;
-		  const labs = ['A','B','C','D','E','F'];
-		  quiz.options.forEach((opt, i) => {
-			const isCorrect = i === quiz.answerIndex;
-			html += `<li class="mb-2"><span class="${isCorrect?'correct-answer':'text-gray-600'}">${labs[i]??''}、${opt}</span></li>`;
-		  });
-		  html += `</ul>`;
-		  item.innerHTML = html;
-		  quizContainer.appendChild(item);
-		});
-	  }
+        // 解析 PDF 並提取問答
+        async function parsePdfQuestions(pdf) {
+            const questions = [];
+            const numPages = pdf.numPages;
 
-	  // 搜尋功能
-	  function filterQuiz() {
-		const term = (searchInput.value||'').toLowerCase();
-		if (!term) { renderQuiz(quizData); return; }
-		const filtered = quizData.filter(q => q.question.toLowerCase().includes(term));
-		renderQuiz(filtered);
-	  }
-	  searchInput.addEventListener('input', filterQuiz);
-	  
-	  //搜尋功能按鈕
-	  const searchBtn = document.getElementById('search-btn');
-	  searchBtn.addEventListener('click', filterQuiz);
+            for (let i = 1; i <= numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const textItems = textContent.items;
 
+                // 根據文本內容的座標，將其組合回完整的行
+                const lines = groupTextItemsIntoLines(textItems);
 
-	  // 載入 PDF
-	  loadBtn.addEventListener('click', async () => {
-		try {
-		  let buf = null;
-		  if (pdfFileInput.files && pdfFileInput.files[0]) {
-			buf = await pdfFileInput.files[0].arrayBuffer();
-		  } else {
-			const url = (pdfUrlInput.value||'').trim();
-			if (!url) { alert('請輸入 PDF 網址或選擇檔案'); return; }
-			const res = await fetch(url, {mode:'cors'});
-			buf = await res.arrayBuffer();
-		  }
-		  quizContainer.innerHTML = '<p class="text-center text-gray-500">解析中，請稍候…</p>';
-		  quizData = await parsePdfToQuiz(buf);
-		  renderQuiz(quizData);
-		} catch(e) {
-		  console.error(e);
-		  alert('PDF 載入失敗：'+e.message);
-		}
-	  });
+                let currentQuestion = null;
+                for (const line of lines) {
+                    const text = line.text.trim();
 
-	  // PDF 解析
-	  async function parsePdfToQuiz(arrayBuffer) {
-		const pdf = await pdfjsLib.getDocument({data: arrayBuffer}).promise;
-		const out = [];
-		for (let n=1;n<=pdf.numPages;n++) {
-		  const page = await pdf.getPage(n);
-		  const textContent = await page.getTextContent();
-		  const viewport = page.getViewport({scale:2});
-		  const canvas = document.createElement('canvas');
-		  const ctx = canvas.getContext('2d',{willReadFrequently:true});
-		  canvas.width = viewport.width; canvas.height = viewport.height;
-		  await page.render({canvasContext:ctx, viewport}).promise;
+                    // 檢查是否為新題目
+                    // 根據使用者提供的檔案格式，題目通常以「請問」或「下列」開頭，且結尾有「?」、「？」或「:」
+                    if (isQuestionLine(text)) {
+                        if (currentQuestion) {
+                            questions.push(currentQuestion);
+                        }
+                        currentQuestion = {
+                            question: text,
+                            options: [],
+                            answerIndex: -1,
+                        };
+                    } 
+                    // 檢查是否為選項
+                    else if (isOptionLine(text)) {
+                        if (currentQuestion) {
+                            currentQuestion.options.push(text);
+                        }
+                    }
+                    // 檢查是否為正確答案標記
+                    else if (text.includes('正解')) {
+                        // 找到 "正解" 後，將下一個選項標示為答案
+                        const lastOptionIndex = currentQuestion.options.length - 1;
+                        if (currentQuestion && lastOptionIndex !== -1) {
+                            currentQuestion.answerIndex = lastOptionIndex;
+                        }
+                    }
+                }
+                if (currentQuestion) {
+                    questions.push(currentQuestion);
+                }
+            }
+            return questions;
+        }
 
-		  const lines = textItemsToLines(textContent.items, viewport);
-		  for (let i=0;i<lines.length;i++) {
-			const q = lines[i].text.trim();
-			if (isQuestionLine(q)) {
-			  const opts=[], boxes=[];
-			  let j=i+1;
-			  while (j<lines.length && isOptionLine(lines[j].text)) {
-				opts.push(lines[j].text.replace(/^\s*[A-F][、\.\)]\s*/,'').trim());
-				boxes.push(lines[j].bbox);
-				j++;
-			  }
-			  if (opts.length>=2) {
-				const ans = detectYellowAnswerIndex(ctx, boxes, DETECT);
-				out.push({question:q, options:opts, answerIndex:(ans??-1)});
-				i=j-1;
-			  }
-			}
-		  }
-		}
-		return out;
-	  }
+        // 判斷是否為題目行
+        function isQuestionLine(text) {
+            return /請問|下列何者|下列個人終端設備防護措施/.test(text) && /[?？:：]/.test(text.slice(-5));
+        }
 
-	  function textItemsToLines(items, viewport){
-		const rows=[];
-		for (const it of items){
-		  const x=it.transform[4], y=it.transform[5];
-		  const h=Math.abs(it.transform[3]);
-		  const w=(it.width?it.width*viewport.scale:it.str.length*h*0.6);
-		  rows.push({text:it.str, x, y, w, h});
-		}
-		rows.sort((a,b)=>b.y-a.y);
-		const lines=[], tol=2.5;
-		for (const r of rows){
-		  let found=false;
-		  for (const L of lines){
-			if (Math.abs(L.y-r.y)<=tol){ L.segs.push(r); L.y=(L.y+r.y)/2; found=true; break;}
-		  }
-		  if (!found) lines.push({y:r.y, segs:[r]});
-		}
-		return lines.map(L=>{
-		  L.segs.sort((a,b)=>a.x-b.x);
-		  const txt=L.segs.map(s=>s.text).join('');
-		  const x0=Math.min(...L.segs.map(s=>s.x));
-		  const y0=Math.min(...L.segs.map(s=>s.y-s.h));
-		  const x1=Math.max(...L.segs.map(s=>s.x+s.w));
-		  const y1=Math.max(...L.segs.map(s=>s.y));
-		  return {text:txt.trim(), bbox:{x:x0,y:y0,w:(x1-x0),h:(y1-y0)}};
-		}).filter(l=>l.text);
-	  }
+        // 判斷是否為選項行 (A. B. C. D.)
+        function isOptionLine(text) {
+            return /^[A-Z][.、)]\s/.test(text);
+        }
 
-	  function isQuestionLine(t){return /[？\?:]\s*$/.test(t)||/請問|下列何者/.test(t);}
-	  function isOptionLine(t){return /^[A-F][、\.\)]/.test(t);}
+        // 將 PDF.js 的文本項目根據垂直座標分組為行
+        function groupTextItemsIntoLines(items) {
+            const lines = [];
+            let lastY = -1;
+            let currentLine = { text: '', y: -1, items: [] };
 
-	  function detectYellowAnswerIndex(ctx, boxes, cfg){
-		let winner=null;
-		for (let i=0;i<boxes.length;i++){
-		  const b=boxes[i];
-		  const xStart=Math.max(b.x-cfg.leftMaxPx,0);
-		  const xEnd=Math.max(b.x-cfg.leftMinPx,0);
-		  const cy=b.y+b.h/2;
-		  const yStart=Math.max(cy-cfg.yPadPx,0);
-		  const yEnd=Math.max(cy+cfg.yPadPx,0);
-		  let hits=0;
-		  for (let y=yStart;y<=yEnd;y+=cfg.gridStepY){
-			for (let x=xStart;x<=xEnd;x+=cfg.gridStepX){
-			  const d=ctx.getImageData(x,y,1,1).data;
-			  if (d[3]>=cfg.yellow.minAlpha &&
-				  d[0]>=cfg.yellow.rMin && d[1]>=cfg.yellow.gMin &&
-				  d[2]<=cfg.yellow.bMax &&
-				  Math.abs(d[0]-d[1])>=cfg.yellow.rgDiffMin){
-				hits++;
-				if (hits>=cfg.hitNeeded){winner=i;break;}
-			  }
-			}
-			if (winner!==null) break;
-		  }
-		  if (winner!==null) break;
-		}
-		return winner;
-	  }
+            for (const item of items) {
+                if (Math.abs(item.transform[5] - lastY) > 5) { // 垂直距離超過一個閾值，視為新行
+                    if (currentLine.items.length > 0) {
+                        lines.push(currentLine);
+                    }
+                    currentLine = { text: '', y: item.transform[5], items: [] };
+                }
+                currentLine.items.push(item);
+                lastY = item.transform[5];
+            }
+            if (currentLine.items.length > 0) {
+                lines.push(currentLine);
+            }
+            
+            // 將每一行的項目組合為單一字串
+            return lines.map(line => ({
+                text: line.items.map(item => item.str).join(' '),
+                y: line.y
+            }));
+        }
 
-	  quizContainer.innerHTML='<p class="text-center text-gray-500">請先載入 PDF。</p>';
-	});
-	</script>
+        // 根據輸入框內容篩選題目
+        function filterQuiz() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const filteredData = quizData.filter(quiz => {
+                return quiz.question.toLowerCase().includes(searchTerm);
+            });
+            renderQuiz(filteredData);
+        }
 
+        // 渲染題目到頁面
+        function renderQuiz(data) {
+            quizContainer.innerHTML = ''; // 清空舊的內容
+            if (data.length === 0) {
+                quizContainer.innerHTML = '<p class="text-center text-gray-500">找不到相符的題目。</p>';
+                return;
+            }
+
+            data.forEach((quiz, index) => {
+                const quizItem = document.createElement('div');
+                quizItem.className = 'bg-gray-100 p-6 rounded-lg shadow-sm';
+                
+                let optionsHtml = '';
+                const optionLabels = ['A', 'B', 'C', 'D'];
+                quiz.options.forEach((option, i) => {
+                    const isCorrect = i === quiz.answerIndex;
+                    const optionClass = isCorrect ? 'text-gray-800 correct-answer' : 'text-gray-600';
+                    optionsHtml += `
+                        <li class="mb-2">
+                            <span class="${optionClass}">${option}</span>
+                        </li>
+                    `;
+                });
+
+                quizItem.innerHTML = `
+                    <p class="text-lg font-bold text-gray-800 mb-4">
+                        Q${index + 1}. ${quiz.question}
+                    </p>
+                    <ul class="list-none space-y-2">
+                        ${optionsHtml}
+                    </ul>
+                `;
+                quizContainer.appendChild(quizItem);
+            });
+        }
+        
+        // 事件監聽
+        searchInput.addEventListener('input', filterQuiz);
+    </script>
 </body>
 </html>
