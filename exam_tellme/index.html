@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>題目與解答搜尋</title>
+  
+    <!-- 新版 favicon (SVG) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    
+    <!-- 備用 favicon (PNG/ICO) 給不支援的瀏覽器 -->
+    <link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
+  
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 800px;
+        }
+        /* Custom scrollbar style */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e5e7eb;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9ca3af;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+<div class="container bg-white rounded-3xl shadow-xl p-8 space-y-6">
+
+    <h1 class="text-3xl font-bold text-center text-gray-800">題目與解答搜尋器</h1>
+    <p class="text-center text-gray-600">請從下方選取題庫，並輸入"題目"關鍵字進行搜尋。</p>
+    <p class="text-center text-gray-600">目前僅支援搜尋題目。</p>
+
+    <!-- 下拉選單 -->
+    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+        <select id="topicSelector" class="flex-grow p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all cursor-pointer">
+            <!-- 選項將由 JavaScript 動態生成 -->
+        </select>
+    </div>
+
+    <!-- 搜尋框 -->
+    <div class="relative flex-grow">
+            <input type="text" id="searchInput" placeholder="輸入關鍵字搜尋..." class="w-full p-3 pl-10 pr-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+    </div>
+
+    <!-- 全選與貼上按鈕 -->
+    <button id="pasteBtn" class="w-full bg-blue-500 text-white font-bold p-3 rounded-xl shadow-lg hover:bg-blue-600 transition-all">全選與貼上</button>
+
+    <!-- 搜尋結果區域 -->
+    <div id="resultsContainer" class="max-h-[60vh] overflow-y-auto space-y-6 p-4 bg-gray-50 rounded-2xl border border-gray-200 shadow-inner">
+        <p class="text-center text-gray-500 italic">正在載入題庫，請稍候...</p>
+    </div>
+
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const topicSelector = document.getElementById('topicSelector');
+        const searchInput = document.getElementById('searchInput');
+        const pasteBtn = document.getElementById('pasteBtn');
+        const resultsContainer = document.getElementById('resultsContainer');
+
+        //題，逗號隔
+        const questionBankUrls = {
+            '114年度資安及個資保護宣導': 'https://feixu.tw/BBD/exam_tellme/json/114%E5%B9%B4%E5%BA%A6%E8%B3%87%E5%AE%89%E5%8F%8A%E5%80%8B%E8%B3%87%E4%BF%9D%E8%AD%B7%E5%AE%A3%E5%B0%8E.json',
+            'a601-全區智財基礎教育訓練暨智財政策目標宣導': 'https://feixu.tw/BBD/exam_tellme/json/a601-%E5%85%A8%E5%8D%80%E6%99%BA%E8%B2%A1%E5%9F%BA%E7%A4%8E%E6%95%99%E8%82%B2%E8%A8%93%E7%B7%B4%E6%9A%A8%E6%99%BA%E8%B2%A1%E6%94%BF%E7%AD%96%E7%9B%AE%E6%A8%99%E5%AE%A3%E5%B0%8E.json'
+        };
+
+        let questionBanks = {};
+        let currentData = null;
+
+        // 動態載入選單並載入資料
+        async function loadQuestionBanks() {
+            try {
+                topicSelector.innerHTML = '';
+                resultsContainer.innerHTML = '<p class="text-center text-gray-500 italic">正在載入題庫，請稍候...</p>';
+
+                for (const topic in questionBankUrls) {
+                    const url = questionBankUrls[topic];
+                    const option = document.createElement('option');
+                    option.value = topic;
+                    option.textContent = topic;
+                    topicSelector.appendChild(option);
+
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP 錯誤! 狀態碼: ${response.status}`);
+                    }
+                    const data = await response.json();
+
+                    let examData = null;
+
+                    // 檢查 JSON 格式是否包含 exam 陣列
+                    if (data && Array.isArray(data.exam)) {
+                        examData = data.exam;
+                    } else if (Array.isArray(data)) {
+                        // 如果根就是一個陣列，則直接使用
+                        examData = data;
+                    } else {
+                        throw new Error("JSON 檔案格式不符。");
+                    }
+
+                    questionBanks[topic] = examData.map(item => {
+                        let optionsText = '';
+                        if (item.options && typeof item.options === 'object') {
+                            for (const key in item.options) {
+                                optionsText += `${key}. ${item.options[key]}\n`;
+                            }
+                        }
+                        return {
+                            question: item.title || item.question, // 兼容兩種鍵名
+                            options: optionsText.trim(),
+                            answer: `答案：${item.answer}. ${item.answerText}`
+                        };
+                    });
+                }
+
+                currentData = questionBanks[topicSelector.value];
+                searchQuestions();
+            } catch (error) {
+                console.error("載入題庫時發生錯誤：", error);
+                resultsContainer.innerHTML = `<p class="text-center text-red-500 italic">載入題庫失敗：${error.message}。</p>`;
+            }
+        }
+
+        loadQuestionBanks();
+
+        topicSelector.addEventListener('change', () => {
+            currentData = questionBanks[topicSelector.value];
+            searchQuestions();
+        });
+
+        searchInput.addEventListener('input', searchQuestions);
+        
+        pasteBtn.addEventListener('click', async () => {
+          try {
+              const text = await navigator.clipboard.readText();
+              searchInput.value = text;
+              searchQuestions(); // 貼上後自動觸發搜尋
+              pasteBtn.textContent = '已貼上！';
+              setTimeout(() => {
+                  pasteBtn.textContent = '清除並貼上';
+              }, 2000);
+          } catch (err) {
+              console.error('無法讀取剪貼簿:', err);
+              pasteBtn.textContent = '無法貼上！';
+              setTimeout(() => {
+                  pasteBtn.textContent = '清除並貼上';
+              }, 2000);
+          }
+      });
+
+        function searchQuestions() {
+            if (!currentData) {
+                return;
+            }
+
+            const query = searchInput.value.trim().toLowerCase();
+            resultsContainer.innerHTML = '';
+
+            if (query === '') {
+                resultsContainer.innerHTML = '<p class="text-center text-gray-500 italic">請輸入關鍵字來開始搜尋。</p>';
+                return;
+            }
+
+            const results = currentData.filter(item =>
+                item.question.toLowerCase().includes(query) || item.answer.toLowerCase().includes(query)
+            );
+
+            if (results.length === 0) {
+                resultsContainer.innerHTML = '<p class="text-center text-gray-500 italic">找不到與關鍵字相符的題目。</p>';
+            } else {
+                results.forEach(item => {
+                    const resultCard = document.createElement('div');
+                    resultCard.className = 'bg-white p-6 rounded-2xl shadow-md border border-gray-200 transition-transform transform hover:scale-[1.01]';
+                    resultCard.innerHTML = `
+                        <h2 class="text-xl font-bold text-blue-600 mb-2">Q：${item.question.replace(/\n/g, '<br>')}</h2>
+                        <div class="text-gray-700 leading-relaxed whitespace-pre-wrap mb-4">${item.options}</div>
+                        <p class="text-gray-700 leading-relaxed answer-text text-red-500" style="font-size: 1.5rem;">${item.answer}</p>
+                    `;
+                    resultsContainer.appendChild(resultCard);
+                });
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
