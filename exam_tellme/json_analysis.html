@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>檔案內容解析器</title>
+  
+    <!-- favicon 標籤頁logo -->
+    <link rel="icon" href="../VELVET_favicon.ico" type="image/svg+xml">
+  
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .container {
+            max-width: 800px;
+        }
+        .rounded-card {
+            background-color: #ffffff;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .btn-primary {
+            background-color: #4f46e5;
+            color: #ffffff;
+        }
+        .btn-primary:hover {
+            background-color: #4338ca;
+        }
+        .json-output {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="container mx-auto p-8 rounded-card">
+        <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">試題內容解析器</h1>
+        <p class="mb-6 text-gray-600 text-center">
+            請將您Word或PDF檔案中的文字內容複製並貼到下方的文字框中。
+            <br>
+            系統將依據您提供的規則，將內容解析為JSON格式並提供下載。
+            <br>
+            **注意：此網頁無法直接讀取Word/PDF檔案。**
+        </p>
+        <div class="mb-6">
+            <label for="content" class="block text-gray-700 font-medium mb-2">貼上試題文字內容</label>
+            <textarea id="content" rows="15" class="w-full p-4 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-200" placeholder="請在此處貼上文字內容..."></textarea>
+        </div>
+
+        <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 mb-6">
+            <button id="parseBtn" class="w-full sm:w-1/2 p-3 rounded-lg font-semibold btn-primary transition duration-200">
+                開始解析
+            </button>
+            <button id="downloadBtn" class="w-full sm:w-1/2 p-3 rounded-lg font-semibold text-white bg-green-500 hover:bg-green-600 transition duration-200" style="display: none;">
+                下載 JSON 檔案
+            </button>
+        </div>
+
+        <div id="statusMessage" class="mt-4 text-center text-red-500 font-medium hidden"></div>
+
+        <div id="jsonOutputContainer" class="mt-6 hidden">
+            <h2 class="text-xl font-semibold mb-2 text-gray-800">解析結果 (JSON)</h2>
+            <pre id="jsonOutput" class="json-output overflow-auto text-sm"></pre>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('parseBtn').addEventListener('click', parseContent);
+        document.getElementById('downloadBtn').addEventListener('click', downloadJson);
+        const correctImageUri = 'uploaded:image_2ca8fd.png-1b01678b-fc32-47ac-b9b8-dd5121410d9a';
+        let parsedData = null;
+
+        function parseContent() {
+            const content = document.getElementById('content').value;
+            const statusMessage = document.getElementById('statusMessage');
+            const jsonOutputContainer = document.getElementById('jsonOutputContainer');
+            const downloadBtn = document.getElementById('downloadBtn');
+            statusMessage.classList.add('hidden');
+            jsonOutputContainer.classList.add('hidden');
+            downloadBtn.style.display = 'none';
+
+            if (!content.trim()) {
+                statusMessage.textContent = '請先貼上文字內容。';
+                statusMessage.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                parsedData = processText(content);
+                const jsonString = JSON.stringify(parsedData, null, 2);
+                document.getElementById('jsonOutput').textContent = jsonString;
+                jsonOutputContainer.classList.remove('hidden');
+                downloadBtn.style.display = 'block';
+            } catch (error) {
+                statusMessage.textContent = '解析失敗，請檢查文字格式是否符合要求。';
+                statusMessage.classList.remove('hidden');
+                console.error('Parsing error:', error);
+            }
+        }
+
+        /**
+         * Parses the input text content into a structured JSON format.
+         * The function acts as a state machine to identify questions, options, and answers.
+         *
+         * @param {string} text The raw text content to parse.
+         * @returns {Array<Object>} An array of question objects.
+         */
+        function processText(input) {
+          const lines = String(input || "").split(/\r?\n/);
+          const results = [];
+
+          const isQuestionMarker = (s) => /^試題文字\s*[:：]?$/u.test(s.trim());
+          const isOptionMarker   = (s) => /^[ABCD]\s*[:：.]?$/i.test(s.trim());
+
+          // 往下找第一個非空白行
+          function readNextNonEmpty(arr, idx) {
+            let j = idx + 1;
+            while (j < arr.length && arr[j].trim() === "") j++;
+            return { value: j < arr.length ? arr[j].trim() : "", index: j };
+          }
+
+          for (let i = 0; i < lines.length; i++) {
+            const line = lines[i].trim();
+
+            // 題目起點
+            if (isQuestionMarker(line)) {
+              const { value: qText, index: afterQIdx } = readNextNonEmpty(lines, i);
+              const item = {
+                question: qText,
+                options: { A: "", B: "", C: "", D: "" },
+                answer: "",
+                answerText: ""
+              };
+              i = afterQIdx;
+
+              for (let j = i + 1; j < lines.length; j++) {
+                const cur = lines[j].trim();
+
+                // 下一題 → 結束當前題
+                if (isQuestionMarker(cur)) { i = j - 1; break; }
+
+                // <ans> → 往下找第一個選項
+                if (cur === "<ans>") {
+                  for (let k = j + 1; k < lines.length; k++) {
+                    const next = lines[k].trim();
+                    if (isOptionMarker(next)) {
+                      const key = next[0].toUpperCase();
+                      const { value: optText } = readNextNonEmpty(lines, k);
+                      item.answer = key;
+                      item.answerText = optText;
+                      break;
+                    }
+                  }
+                  continue;
+                }
+
+                // 選項
+                if (isOptionMarker(cur)) {
+                  const key = cur[0].toUpperCase();
+                  const { value: optText, index: afterOptIdx } = readNextNonEmpty(lines, j);
+                  item.options[key] = optText;
+                  j = afterOptIdx;
+                  i = Math.max(i, j - 1);
+                  continue;
+                }
+
+                // 其他情況略過
+                if (j === lines.length - 1) i = j;
+              }
+
+              results.push(item);
+            }
+          }
+
+          return results;
+        }
+
+
+
+        /**
+         * Creates and triggers a download for the parsed JSON data.
+         */
+        function downloadJson() {
+            if (!parsedData) {
+                return;
+            }
+            const jsonString = JSON.stringify(parsedData, null, 2);
+            const blob = new Blob([jsonString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'parsed_questions.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+    
+    <!-- GPT -->
+    <script>
+    /* === 貼上區就是你的 textarea：#userInput（不要改） === */
+    const PASTE_SELECTOR = "#content";
+
+
+    /* === 樣本圖片與相似度參數（可留預設） === */
+    const SAMPLE_URL = "https://feixu.tw/BBD/doc57/ans.png";
+    const SIZE = 32;                 // 灰階縮圖大小
+    const THRESHOLD = 5000;          // MSE 門檻（小於此值就判定為 <ans>）
+
+    let sampleGray = null;
+
+    /* ---- 工具：把圖片來源轉成固定尺寸灰階陣列 ---- */
+    function getGrayArray(blobOrUrl, size = SIZE) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => {
+          try {
+            const c = document.createElement("canvas");
+            c.width = size; c.height = size;
+            const ctx = c.getContext("2d", { willReadFrequently: true });
+            ctx.drawImage(img, 0, 0, size, size);
+            const data = ctx.getImageData(0, 0, size, size).data;
+            const gray = [];
+            for (let i = 0; i < data.length; i += 4) {
+              gray.push(0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]);
+            }
+            resolve(gray);
+          } catch (e) { reject(e); }
+        };
+        img.onerror = reject;
+        if (typeof blobOrUrl === "string") img.src = blobOrUrl;
+        else img.src = URL.createObjectURL(blobOrUrl);
+      });
+    }
+    function mse(a, b) {
+      if (!a || !b || a.length !== b.length) return 9e9;
+      let s = 0;
+      for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d*d; }
+      return s / a.length;
+    }
+
+    /* ---- 對 textarea 在游標處插入 / 替換 ---- */
+    function insertAtCaretTA(el, text) {
+      const start = el.selectionStart ?? el.value.length;
+      const end   = el.selectionEnd ?? el.value.length;
+      el.value = el.value.slice(0, start) + text + el.value.slice(end);
+      const caret = start + text.length;
+      el.selectionStart = el.selectionEnd = caret;
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    function replaceLastPlaceholderInTA(el, fromStr, toStr) {
+      const caret = el.selectionStart ?? el.value.length;
+      const upTo  = el.value.slice(0, caret);
+      const idx   = upTo.lastIndexOf(fromStr);
+      if (idx >= 0) {
+        el.value = el.value.slice(0, idx) + toStr + el.value.slice(idx + fromStr.length);
+        const newCaret = idx + toStr.length;
+        el.selectionStart = el.selectionEnd = newCaret;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+    }
+
+    /* ---- 解析 Word/網頁貼來的 HTML，依原順序把文字/圖片塞進 textarea ---- */
+    async function processHtmlIntoTextarea(el, html) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+
+      async function handle(node) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          insertAtCaretTA(el, node.nodeValue || "");
+          return;
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+        const tag = node.tagName.toLowerCase();
+        if (tag === "br") {
+          insertAtCaretTA(el, "\n");
+          return;
+        }
+        if (tag === "img") {
+          // 先放 <img> 佔位
+          insertAtCaretTA(el, "<img>");
+          const src = node.getAttribute("src") || "";
+          if (src && sampleGray) {
+            try {
+              const arr = await getGrayArray(src);
+              const diff = mse(sampleGray, arr);
+              if (diff < THRESHOLD) {
+                replaceLastPlaceholderInTA(el, "<img>", "<ans>");
+              }
+            } catch (_) { /* 失敗就保持 <img> */ }
+          }
+          return;
+        }
+
+        // 容器：遞迴其子節點
+        for (const child of Array.from(node.childNodes)) {
+          await handle(child);
+        }
+        // 讓段落結尾換行，接近 Word 排版
+        if (["p","div","li","ul","ol","h1","h2","h3","h4","h5","h6","pre","blockquote"].includes(tag)) {
+          insertAtCaretTA(el, "\n");
+        }
+      }
+
+      for (const n of Array.from(tmp.childNodes)) {
+        await handle(n);
+      }
+    }
+
+    /* ---- 初始化：載入樣本灰階特徵並綁定 paste 事件 ---- */
+    (function initANSBotPaste() {
+      const el = document.querySelector(PASTE_SELECTOR);
+      if (!el) return;
+
+      // 預載樣本（若 CORS 失敗，仍能插入 <img>，只是無法轉 <ans>）
+      getGrayArray(SAMPLE_URL).then(arr => sampleGray = arr).catch(()=>{ sampleGray = null; });
+
+      el.addEventListener("paste", async (e) => {
+        e.preventDefault();
+
+        // 先處理 HTML（Word/網頁複製通常會有）
+        const items = Array.from(e.clipboardData?.items || []);
+        const htmlItem = items.find(it => it.kind === "string" && it.type === "text/html");
+        if (htmlItem) {
+          await new Promise(res => htmlItem.getAsString(async html => { await processHtmlIntoTextarea(el, html); res(); }));
+          return;
+        }
+
+        // 沒有 HTML：依序處理圖片與純文字
+        for (const it of items) {
+          if (it.kind === "file" && it.type.startsWith("image/")) {
+            // 先塞 <img>
+            insertAtCaretTA(el, "<img>");
+            if (sampleGray) {
+              try {
+                const file = it.getAsFile();
+                const arr = await getGrayArray(file);
+                const diff = mse(sampleGray, arr);
+                if (diff < THRESHOLD) {
+                  replaceLastPlaceholderInTA(el, "<img>", "<ans>");
+                }
+              } catch (_) { /* 保持 <img> */ }
+            }
+          } else if (it.kind === "string" && it.type === "text/plain") {
+            await new Promise(r => it.getAsString(s => { insertAtCaretTA(el, s); r(); }));
+          }
+        }
+      }, { capture: true });
+    })();
+    </script>
+
+    <!-- 判斷圖片偵測 -->
+    <script>
+      /* === 你的貼上區就是 textarea#content（若不同，改這行） === */
+      const PASTE_SELECTOR = "#content";
+
+      /* === 樣本圖片與相似度參數 === */
+      const SAMPLE_URL = "https://feixu.tw/BBD/doc57/ans.png";
+      const SIZE = 32;                 // 灰階縮圖大小
+      const THRESHOLD = 5000;          // MSE 門檻（小於此值 → 判定為 <ans>）
+
+      let sampleGray = null;
+
+      /* ---------- 狀態提示（小浮窗） ---------- */
+      let statusTimer = null;
+      function ensureStatusEl(){
+        let el = document.getElementById("ans-status-tip");
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "ans-status-tip";
+          el.style.cssText = "position:fixed;right:16px;bottom:16px;padding:8px 12px;border-radius:8px;background:rgba(0,0,0,.75);color:#fff;font-size:12px;z-index:2147483647;box-shadow:0 4px 12px rgba(0,0,0,.2);opacity:0;transition:opacity .15s";
+          document.body.appendChild(el);
+        }
+        return el;
+      }
+      function showStatus(msg){
+        const el = ensureStatusEl();
+        el.textContent = msg;
+        el.style.opacity = "1";
+        if (statusTimer) { clearTimeout(statusTimer); statusTimer = null; }
+      }
+      function hideStatus(delay=1200){
+        const el = ensureStatusEl();
+        if (statusTimer) clearTimeout(statusTimer);
+        statusTimer = setTimeout(()=>{ el.style.opacity = "0"; }, delay);
+      }
+
+      /* ---------- 影像工具 ---------- */
+      function getGrayArray(blobOrUrl, size = SIZE) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+            try {
+              const c = document.createElement("canvas");
+              c.width = size; c.height = size;
+              const ctx = c.getContext("2d", { willReadFrequently: true });
+              ctx.drawImage(img, 0, 0, size, size);
+              const data = ctx.getImageData(0, 0, size, size).data;
+              const gray = [];
+              for (let i = 0; i < data.length; i += 4) {
+                gray.push(0.299*data[i] + 0.587*data[i+1] + 0.114*data[i+2]);
+              }
+              resolve(gray);
+            } catch (e) { reject(e); }
+          };
+          img.onerror = reject;
+          if (typeof blobOrUrl === "string") img.src = blobOrUrl;
+          else img.src = URL.createObjectURL(blobOrUrl);
+        });
+      }
+      function mse(a, b) {
+        if (!a || !b || a.length !== b.length) return 9e9;
+        let s = 0;
+        for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d*d; }
+        return s / a.length;
+      }
+
+      /* ---------- textarea 游標插入與替換 ---------- */
+      function insertAtCaretTA(el, text) {
+        const start = el.selectionStart ?? el.value.length;
+        const end   = el.selectionEnd ?? el.value.length;
+        el.value = el.value.slice(0, start) + text + el.value.slice(end);
+        const caret = start + text.length;
+        el.selectionStart = el.selectionEnd = caret;
+        el.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      function replaceLastPlaceholderInTA(el, fromStr, toStr) {
+        const caret = el.selectionStart ?? el.value.length;
+        const upTo  = el.value.slice(0, caret);
+        const idx   = upTo.lastIndexOf(fromStr);
+        if (idx >= 0) {
+          el.value = el.value.slice(0, idx) + toStr + el.value.slice(idx + fromStr.length);
+          const newCaret = idx + toStr.length;
+          el.selectionStart = el.selectionEnd = newCaret;
+          el.dispatchEvent(new Event("input", { bubbles: true }));
+        }
+      }
+
+      /* ---------- 解析 Word/網頁的 HTML，依原順序插入 ---------- */
+      async function processHtmlIntoTextarea(el, html, progress){
+        const tmp = document.createElement("div");
+        tmp.innerHTML = html;
+
+        // 計數：先估算要處理的圖片數
+        const totalImgs = tmp.querySelectorAll("img").length;
+        if (progress) progress.start(totalImgs);
+
+        async function handle(node) {
+          if (node.nodeType === Node.TEXT_NODE) {
+            insertAtCaretTA(el, node.nodeValue || "");
+            return;
+          }
+          if (node.nodeType !== Node.ELEMENT_NODE) return;
+
+          const tag = node.tagName.toLowerCase();
+          if (tag === "br") {
+            insertAtCaretTA(el, "\n");
+            return;
+          }
+          if (tag === "img") {
+            // 先放 <img> 佔位
+            insertAtCaretTA(el, "<img>");
+            const src = node.getAttribute("src") || "";
+            if (src && sampleGray) {
+              try {
+                const arr = await getGrayArray(src);
+                const diff = mse(sampleGray, arr);
+                if (diff < THRESHOLD) replaceLastPlaceholderInTA(el, "<img>", "<ans>");
+              } catch (_) { /* 失敗就保持 <img> */ }
+            }
+            if (progress) progress.tick();
+            return;
+          }
+
+          for (const child of Array.from(node.childNodes)) {
+            await handle(child);
+          }
+          if (["p","div","li","ul","ol","h1","h2","h3","h4","h5","h6","pre","blockquote"].includes(tag)) {
+            insertAtCaretTA(el, "\n");
+          }
+        }
+
+        for (const n of Array.from(tmp.childNodes)) {
+          await handle(n);
+        }
+        if (progress) progress.done();
+      }
+
+      /* ---------- 初始化貼上事件 ---------- */
+      (function initANSBotPaste() {
+        const el = document.querySelector(PASTE_SELECTOR);
+        if (!el) return;
+
+        // 預載樣本（若取不到像素，之後仍會插入 <img>，只是無法轉 <ans>）
+        getGrayArray(SAMPLE_URL).then(arr => sampleGray = arr).catch(()=>{ sampleGray = null; });
+
+        el.addEventListener("paste", async (e) => {
+          e.preventDefault();
+
+          // 建立一組簡單的進度提示
+          const progress = (() => {
+            let total = 0, done = 0;
+            return {
+              start(t){ total = t || 0; done = 0; if (total>0) showStatus(`正在比對圖片… (0/${total})`); },
+              tick(){ done++; if (total>0) showStatus(`正在比對圖片… (${done}/${total})`); },
+              done(){ if (total>0) { showStatus("比對完成"); hideStatus(); } }
+            };
+          })();
+
+          const items = Array.from(e.clipboardData?.items || []);
+          const htmlItem = items.find(it => it.kind === "string" && it.type === "text/html");
+
+          if (htmlItem) {
+            await new Promise(res => htmlItem.getAsString(async html => {
+              await processHtmlIntoTextarea(el, html, progress);
+              res();
+            }));
+            return;
+          }
+
+          // 無 HTML：先計算要處理的圖片數
+          const fileImgs = items.filter(it => it.kind==="file" && it.type.startsWith("image/"));
+          progress.start(fileImgs.length);
+
+          for (const it of items) {
+            if (it.kind === "file" && it.type.startsWith("image/")) {
+              // 先塞 <img>
+              insertAtCaretTA(el, "<img>");
+              if (sampleGray) {
+                try {
+                  const file = it.getAsFile();
+                  const arr = await getGrayArray(file);
+                  const diff = mse(sampleGray, arr);
+                  if (diff < THRESHOLD) replaceLastPlaceholderInTA(el, "<img>", "<ans>");
+                } catch (_) { /* 保持 <img> */ }
+              }
+              progress.tick();
+            } else if (it.kind === "string" && it.type === "text/plain") {
+              await new Promise(r => it.getAsString(s => { insertAtCaretTA(el, s); r(); }));
+            }
+          }
+          progress.done();
+        }, { capture: true });
+      })();
+      </script>
+
+
+
+</body>
+</html>
