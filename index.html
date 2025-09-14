@@ -10,6 +10,9 @@
     
     <!-- 備用 favicon (PNG/ICO) 給不支援的瀏覽器 -->
     <link rel="alternate icon" type="image/x-icon" href="/favicon.ico">
+
+	<!-- 引入CSS -->
+    <link rel="stylesheet" href="/styles_bg.css">
 	
     <style>
         * {
@@ -681,70 +684,43 @@
                 <li>沒事多喝水</li>
             </ul>
         </div>
+		
+	<!-- footer 引入 -->
+	<div id="footer-placeholder"></div>
 
-        <div class="guide-section">
-            <h2 class="section-title">
-                <span class="icon">🔍</span>
-                快速搜尋
-            </h2> //張源庭
-            <div style="text-align: center;">
-                <input type="text" id="searchBox" placeholder="輸入關鍵字搜尋相關網站..." 
-                       style="width: 80%; max-width: 400px; padding: 15px; border: 2px solid #667eea; border-radius: 25px; font-size: 16px; outline: none;">
-                <button onclick="performSearch()" 
-                        style="background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; padding: 15px 30px; border-radius: 25px; margin-left: 10px; cursor: pointer; font-size: 16px;">
-                    搜尋
-                </button>
-            </div>
-            <div id="searchResults" style="margin-top: 20px;"></div>
-        </div>
-    </div>
 
     <script>
-        // 搜尋功能
-        function performSearch() {
-            const searchTerm = document.getElementById('searchBox').value.toLowerCase();
-            const resultsDiv = document.getElementById('searchResults');
-            
-            const mockResults = {
-                '戶政': ['內政部戶政司', '戶籍謄本申請', '身分證換發'],
-                '稅務': ['財政部國稅局', '地方稅務局', '報稅軟體下載'],
-                '教育': ['教育部', '各級學校', '學歷認證'],
-                '銀行': ['網路銀行', '信用卡服務', '貸款申請'],
-                '健保': ['健保署', '健保卡申請', '醫療院所查詢']
-            };
-            
-            let results = [];
-            for (let key in mockResults) {
-                if (searchTerm.includes(key) || key.includes(searchTerm)) {
-                    results = results.concat(mockResults[key]);
-                }
-            }
-            
-            if (results.length > 0) {
-                resultsDiv.innerHTML = `
-                    <div style="background: #e8f5e8; padding: 20px; border-radius: 10px; margin-top: 20px;">
-                        <h4>搜尋結果:</h4>
-                        ${results.map(result => `<div style="margin: 10px 0; padding: 10px; background: white; border-radius: 5px;">📌 ${result}</div>`).join('')}
-                    </div>
-                `;
-            } else if (searchTerm.trim()) {
-                resultsDiv.innerHTML = `
-                    <div style="background: #f8d7da; padding: 20px; border-radius: 10px; margin-top: 20px; text-align: center;">
-                        <p>未找到相關結果，請嘗試其他關鍵字</p>
-                    </div>
-                `;
-            } else {
-                resultsDiv.innerHTML = '';
-            }
-        }
-        
-        // Enter鍵搜尋
-        document.getElementById('searchBox').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                performSearch();
-            }
-        });
-        
+	    document.addEventListener('DOMContentLoaded', () => {
+		  const footerPlaceholder = document.getElementById('footer-placeholder');
+		  if (!footerPlaceholder) return;
+		
+		  // 若你的頁面在 feixu.tw 網域底下，這行就能成功抓到
+		  const FOOTER_PATH = '/footer.html';
+		
+		  fetch(FOOTER_PATH, { cache: 'no-store' })
+		    .then(res => {
+		      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+		      return res.text();
+		    })
+		    .then(html => { footerPlaceholder.innerHTML = html; })
+		    .catch(err => {
+		      console.error('Error loading footer:', err);
+		      footerPlaceholder.innerHTML =
+		        '<footer style="margin-top:24px;color:#fff;opacity:.9;text-align:center">載入頁尾失敗</footer>';
+		    });
+		
+		  // —— 安全綁定：存在才綁，避免腳本中斷 ——
+		  const searchBox = document.getElementById('searchBox');
+		  if (searchBox) {
+		    searchBox.addEventListener('keypress', (e) => {
+		      if (e.key === 'Enter') {
+		        // 你的 performSearch() 內容...
+		      }
+		    });
+		  }
+		});
+
+		
         // 添加頁面載入動畫
         window.addEventListener('load', function() {
             const sections = document.querySelectorAll('.guide-section');
