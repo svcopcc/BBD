@@ -95,10 +95,30 @@
         <p class="text-center bg-blue-500 italic">正在載入題庫，請稍候...</p>
     </div>
 
+    <!-- footer -->
+    <div id="footer-placeholder"></div>
+
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', () => {
+        //引入footer
+        const footerPlaceholder = document.getElementById('footer-placeholder');
+        fetch('https://feixu.tw/footer.html')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Failed to load footer.html');
+                }
+                return response.text();
+            })
+            .then(html => {
+                footerPlaceholder.innerHTML = html;
+            })
+            .catch(error => console.error('Error loading footer:', error));
+        //#_引入footer
+
+
+        
         const topicSelector = document.getElementById('topicSelector');
         const searchInput = document.getElementById('searchInput');
         const pasteBtn = document.getElementById('pasteBtn');
